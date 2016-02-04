@@ -9,6 +9,9 @@ int main(int argc, char *argv[]) {
 
     char *input;
 
-    printf("?> ");
-    scanf("%s",input);
+    while (input != "\0") {
+        printf("?> ");
+        scanf("%s", input);
+    }
 }
+
