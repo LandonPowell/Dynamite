@@ -1,2 +1,2 @@
 # DeviousYarn
-The Yarn string manipulation oriented language. 
+The DeviousYarn string manipulation oriented language. 
