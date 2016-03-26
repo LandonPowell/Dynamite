@@ -1,7 +1,7 @@
 use std::io;
 
 fn main() {
-    while(true) {
+    while(...) {
         println!(" -input- ");
         let mut input = String::new();
         io::stdin().read_line(&mut input);
