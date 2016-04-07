@@ -8,7 +8,7 @@ import (
 )
 
 func tokenizer(plaintext string) [][]string {
-    strings := "'[^']+'"
+    strings := "'[^']+'|\"[^\n]+"
     brackets:= "[\\[\\](){}]"
     names   := "[\\w:-@^-`~\\|*-/!-&]+"
 
