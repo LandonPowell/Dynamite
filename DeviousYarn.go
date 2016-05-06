@@ -8,9 +8,9 @@ import (
 )
 
 func tokenizer(plaintext string) [][]string {
-    strings := "'[^']+'|\"[^\n]+"
-    brackets:= "[\\[\\](){}]"
-    names   := "[\\w:-@^-`~\\|*-/!-&]+"
+    strings     := "'(\\\\'|[^'])+'|\"[^\n]+"
+    brackets    := "[\\[\\](){}]"
+    names       := "[\\w:-@^-`~\\|*-/!-&]+"
 
     tokens  := regexp.MustCompile(strings+"|"+brackets+"|"+names)
     return tokens.FindAllStringSubmatch(plaintext, -1)
