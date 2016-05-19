@@ -24,10 +24,10 @@ func main() {
     reader := bufio.NewReader(os.Stdin)
 
     var input string
-    for input != "KILL\n" {
+    for input != "kill\n" && input != "exit\n" {
 
         fmt.Println(" -input- ")
-        input, _ := reader.ReadString('\n')
+        input, _ = reader.ReadString('\n')
 
         fmt.Println(" -output- ")
         fmt.Println( tokenizer( input ) )
