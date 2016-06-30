@@ -15,8 +15,8 @@ func contains(x string, z string) bool {    // Checks if char is in string.
 // This is mostly self-explaining, but it's the lexer (obviously).
 func lexer(plaintext string) []string {
     strings     := "'(\\\\'|[^'])+'|\"[^\n]+"       // Regex for strings.
-    brackets    := "[\\[\\](){}]"                   // Regex for bracket chars.
-    names       := "[\\w:-@^-`~\\|*-/!-&]+"         // Regex for var names.
+    brackets    := "[\\[\\](){}:]"                  // Regex for bracket chars.
+    names       := "[\\w-@^-`~\\|*-/!-&;]+"         // Regex for var names.
 
     tokens  := regexp.MustCompile( strings+"|"+brackets+"|"+names )
     return tokens.FindAllString(plaintext, -1)
@@ -64,11 +64,10 @@ func main() {
         input, _ = reader.ReadString('\n')
 
         fmt.Println(" -output- ")
-        var tokenList   = lexer( input )
-        var program     = parser(tokenList)
-        fmt.Println( parser( lexer( input ) ) )
+        var tokenList   = lexer ( input )
+        var program     = parser( tokenList )
+        fmt.Println( program )
     }
 
     fmt.Println(" Thanks for using DeviousYarn~! ")
 }
-
