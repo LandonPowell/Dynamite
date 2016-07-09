@@ -12,45 +12,53 @@ func contains(x string, z string) bool {    // Checks if char is in string.
     return false
 }
 
-// This is mostly self-explaining, but it's the lexer (obviously).
-func lexer(plaintext string) []string {
+// This is mostly self-explaining, but it's the tokenizer (obviously).
+func lexer(plaintext string) []string {     // Returns a list of tokens.
     strings     := "'(\\\\'|[^'])+'|\"[^\n]+"       // Regex for strings.
-    brackets    := "[\\[\\](){}]"                   // Regex for bracket chars.
-    names       := "[\\w:-@^-`~\\|*-/!-&]+"         // Regex for var names.
+    brackets    := "[\\[\\](){}:]"                  // Regex for bracket chars.
+    names       := "[\\w-@^-`~\\|*-/!-&;]+"         // Regex for var names.
 
     tokens  := regexp.MustCompile( strings+"|"+brackets+"|"+names )
     return tokens.FindAllString(plaintext, -1)
 }
 
+var tokenList = []string{}
 
 type tree struct { // Tree of processes. It can also be a value.
-    value   string  // If it's a value.
-    args    []tree  // If it's a bunch of subprocesses.
+    value   string // If it's a value.
+    args    []tree // If it's a bunch of subprocesses.
 }
 
-func parser(tokenList []string) []tree {
+var programTree = tree { // Default tree of the entire program.
+    value: "run",
+    args: []tree{},
+}
 
-    var expression = []tree{}
+// Instead of using 'tokenList' as an arg, we use a global token list. Recursion + Scope == Pain.
+func parser() []tree {
+    var treeList = []tree{};
+    
+    for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") {
 
-    // Until the tokenList is empty or the next character is a closing bracket.
-    for len(tokenList) > 0 && ! contains(tokenList[0], ")]j}") {
-        token := tokenList[0]
-        tokenList = tokenList[1:]
+        var currentTree = tree {
+            value: tokenList[0],
+            args: []tree{},
+        }
+        tokenList = tokenList[1:] // Removes the first element in the slice.
 
-        subExpression := tree{
-            value   : token,
-            args    : []tree{},
+        if len(tokenList) > 0 && contains(tokenList[0], "{[(f") {
+            tokenList = tokenList[1:]
+            currentTree.args = parser()
         }
 
-        // If the next character is an opening bracket.
-        if len(tokenList) > 0 && contains(tokenList[0], "{f[(") {
-            tokenList = tokenList[1:]               // Removes opening bracket.
-            subExpression.args = parser(tokenList)  // Recurses through list.
-        }
-
-        expression = append(expression, subExpression)
+        treeList = append(treeList, currentTree)
     }
-    return expression
+
+    if len(tokenList) > 0 && contains(tokenList[0], "j)]}") {
+        tokenList = tokenList[1:]
+    }
+
+    return treeList
 }
 
 func main() {
@@ -61,14 +69,17 @@ func main() {
     for input != "kill\n" {
 
         fmt.Println(" -input- ")
+
         input, _ = reader.ReadString('\n')
 
         fmt.Println(" -output- ")
-        var tokenList   = lexer( input )
-        var program     = parser(tokenList)
-        fmt.Println( parser( lexer( input ) ) )
+
+        tokenList           = lexer ( input )
+        programTree.args    = parser( )
+
+        fmt.Println( tokenList )    // Tokenizer test.
+        fmt.Println( programTree )  // Parser test.
     }
 
     fmt.Println(" Thanks for using DeviousYarn~! ")
 }
-
