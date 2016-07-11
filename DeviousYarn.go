@@ -73,10 +73,16 @@ type atom struct {
 
 func atomize(preAtom tree) atom {
     var postAtom atom
-    if string(preAtom.value[0]) == "\"" || string(preAtom.value[0]) == "'" {
+
+    firstChar := string(preAtom.value[0]) 
+    if firstChar == "\"" || firstChar == "'" {
 
         postAtom.Type   = "str"
-        postAtom.str    = preAtom.value[1:]
+        if (firstChar == "\"") {
+            postAtom.str    = preAtom.value[1:] 
+        } else {
+            
+        }
 
     } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {
 
@@ -88,7 +94,7 @@ func atomize(preAtom tree) atom {
     return postAtom
 }
 
-var variables map[string]tree
+var variables = make( map[string]tree )
 
 func evalAll(treeList []tree) {
     for _, x := range(treeList) {
@@ -111,11 +117,22 @@ func evaluator(subTree tree) tree {
             value: "true",
             args: []tree{},
         }
+    } else if subTree.value == "set" {
+        if len(subTree.args) > 1 {
+            variables[subTree.args[0].value] = subTree.args[1]
+            return subTree.args[1]
+        }
+
+        return tree {
+            value: "false",
+            args: []tree{},
+        }
     } else if subTree.value == "?" {    // This represents a simple conditional, or an 'if' statement.
         if len(subTree.args) > 1 && evaluator(subTree.args[0]).value == "true" {
             return evaluator(subTree.args[1])
             evalAll(subTree.args[2:])
         }
+
         return tree {
             value: "false",
             args: []tree{},
