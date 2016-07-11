@@ -6,7 +6,7 @@ char** tokenizer(char plaintext []) {
     char  word;
 
     int index;
-    for (index = 0; plaintext[index] != 0; index++) {
+    for (index = 0; ! plaintext[index]; index++) {
         // printf("%c \n", plaintext[index] ); 
     }
 
