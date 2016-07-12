@@ -137,7 +137,7 @@ func evaluator(subTree tree) tree {
 
         return evalAll(subTree.args)
 
-    } else if subTree.value == "set" {
+    } else if subTree.value == "set" {  // Sets variables.
 
         if len(subTree.args) > 1 {
             variables[subTree.args[0].value] = subTree.args[1]
@@ -179,15 +179,15 @@ func evaluator(subTree tree) tree {
     
     } else if subTree.value == "print" || subTree.value == "p" {
 
-            printArg := atomize(evaluator(subTree.args[0]))
+        printArg := atomize(evaluator(subTree.args[0]))
 
-            switch printArg.Type {
-            case "str"  : fmt.Print(printArg.str)
-            case "num"  : fmt.Print(printArg.num)
-            default     : return tree { value: "on" }
-            }
+        switch printArg.Type {
+        case "str"  : fmt.Print(printArg.str)
+        case "num"  : fmt.Print(printArg.num)
+        default     : return tree { value: "on" }
+        }
 
-            return tree { value: "on" }
+        return tree { value: "on" }
 
     } else if subTree.value == "rawOut" {   // This outputs the plaintext of a tree.
 
