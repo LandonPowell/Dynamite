@@ -234,12 +234,14 @@ func main() {
     if len(flag.Args()) >= 2 {
 
         switch flag.Arg(0) {
-        case "runFile": runFile(flag.Arg(1))
-        case "load":    // To Do
-        case "run":     execute(flag.Arg(1))
-        
-        default: 
-            fmt.Println("That argument '" + flag.Arg(0) + "' is not recognized.")
+            case "runFile": runFile(flag.Arg(1))
+            case "load":    // To Do
+            case "run":     execute(flag.Arg(1))
+
+            default: fmt.Println(
+                                    "That argument '" + 
+                                    flag.Arg(0) + 
+                                    "' is not recognized.")
         }
 
     } else if len( flag.Args() ) >= 1 {
