@@ -3,9 +3,12 @@ package main
 import (
     "os"
     "fmt"
+    "flag"
     "bufio"
     "regexp"
     "strconv"
+    "strings"
+    "io/ioutil"
 )
 
 func contains(x string, z string) bool {    // Checks if char is in string.
@@ -67,112 +70,118 @@ type atom struct {
 
     str     string  // If the type is 'str' (a string) this is the value.
     num     float64 // 'num' (a number)
+    bit     bool    // 'bit' (a 1 or 0, True or False)
     fun     tree    // 'fun' (a function)
-    file    string  // 'file'
+    file    []string// 'file'
 }
 
 func atomize(preAtom tree) atom {
     var postAtom atom
 
     firstChar := string(preAtom.value[0]) 
-    if firstChar == "\"" || firstChar == "'" {
+    if firstChar == "\"" || firstChar == "'" {  // If the value is a string.
 
         postAtom.Type   = "str"
         if (firstChar == "\"") {
             postAtom.str    = preAtom.value[1:] 
         } else {
-            
+            postAtom.str    = preAtom.value
         }
 
-    } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {
+    } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {  // If the value is a number.
 
         postAtom.Type   = "num"
         postAtom.num, _ = strconv.ParseFloat(preAtom.value, 64)
 
-    } else { postAtom.Type = "CAN NOT PARSE" }
+    } else if preAtom.value == "on" || preAtom.value == "off" { // If the value is a bit/bool.
+
+        postAtom.Type   = "bit"
+        if preAtom.value == "on" {
+            postAtom.bit = true
+        } else {
+            postAtom.bit = false 
+        }
+
+    } else { 
+        postAtom.Type = "CAN NOT PARSE" 
+    }
 
     return postAtom
 }
 
 var variables = make( map[string]tree )
 
-func evalAll(treeList []tree) {
+func evalAll(treeList []tree) tree {
     for _, x := range(treeList) {
         currentRun := evaluator(x)
 
         if currentRun.value == "ERROR" {
             fmt.Println(" -error- ")
             fmt.Println(currentRun.args[0].value)
+        } else if currentRun.value == "return" {
+            return evaluator(currentRun.args[0])
         }
     }
+    return tree { value: "False" }
 }
-
 func evaluator(subTree tree) tree {
     if val, ok := variables[subTree.value]; ok {    // This returns variable values.
-        return evaluator(val)
-    } else if subTree.value == "run" {  // This is a function similair to an anonymous function.
-        evalAll(subTree.args)
 
-        return tree {
-            value: "true",
-            args: []tree{},
-        }
+        return evaluator(val)
+
+    } else if subTree.value == "run" {  // This is a function similair to an anonymous function.
+
+        return evalAll(subTree.args)
+
     } else if subTree.value == "set" {
+
         if len(subTree.args) > 1 {
             variables[subTree.args[0].value] = subTree.args[1]
             return subTree.args[1]
         }
 
-        return tree {
-            value: "false",
-            args: []tree{},
-        }
-    } else if subTree.value == "?" {    // This represents a simple conditional, or an 'if' statement.
-        if len(subTree.args) > 1 && evaluator(subTree.args[0]).value == "true" {
-            return evaluator(subTree.args[1])
-            evalAll(subTree.args[2:])
+        return tree { value: "off" }
+
+    } else if subTree.value == "?" || subTree.value == "if" {   // Simple conditional.
+
+        if len(subTree.args) > 1 && evaluator(subTree.args[0]).value == "on" {
+            return evalAll(subTree.args[1:])
         }
 
-        return tree {
-            value: "false",
-            args: []tree{},
-        }
+        return tree { value: "off" }
+
     } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'printf' minus templating.
+
         if len(subTree.args) > 0 {
             
             printArg := atomize(evaluator(subTree.args[0]))
 
-            switch printArg.Type {  // I'm not sure if I can use printArg['str'] syntax, so this will have to do for now.
+            switch printArg.Type {  // Too bad I can't use printArg['str'] syntax.
             case "str"  : fmt.Println(printArg.str)
             case "num"  : fmt.Println(printArg.num)
             case "fun"  : fmt.Println(printArg.fun)
-            case "file" : fmt.Println(printArg.file)
+            case "file" : 
+                if len(subTree.args) > 1 {
+                    fmt.Println(printArg.file)
+                } else {
+                    fmt.Println(printArg.file)
+                }
             }
 
-            return tree {
-                value: "true",
-                args: []tree{},
-            }
+            return evaluator(subTree.args[0])
         }
 
-        return tree {
-            value: "false",
-            args: []tree{},
-        }
+        return tree { value: "off" }
+
     } else if subTree.value == "rawOut" {   // This outputs the plaintext of a tree.
+
         if len(subTree.args) > 0 {
             fmt.Println(evaluator(subTree.args[0]))
-
-            return tree {
-                value: "true",
-                args: []tree{},
-            }
+            return subTree.args[0]
         }
 
-        return tree {
-            value: "false",
-            args: []tree{},
-        }
+        return tree { value: "off" }
+
     } else if atomize(subTree).Type != "CAN NOT PARSE" {
         return subTree
     }
@@ -181,31 +190,70 @@ func evaluator(subTree tree) tree {
         value: "ERROR",
         args: []tree{
             tree { 
-                value: "Value '" + subTree.value +  "' not found.",
+                value: "The word '" + subTree.value +  "' means nothing.",
                 args: []tree{},
             },
         },
     }
 }
 
-func main() {
+func execute(input string) {
+        tokenList           = lexer     ( input )
+        programTree.args    = parser    ( )
+        evaluator ( programTree )
+}
 
+func prompt() {
     reader := bufio.NewReader(os.Stdin)
 
     var input string
     for input != "kill\n" {
 
         fmt.Println(" -input- ")
-
         input, _ = reader.ReadString('\n')
 
         fmt.Println(" -output- ")
+        execute( input )
 
-        tokenList           = lexer     ( input )
-        programTree.args    = parser    ( )
-
-        evaluator ( programTree )
     }
 
     fmt.Println(" Thanks for using DeviousYarn~! ")
+}
+
+func runFile(input string) {
+    file, err := ioutil.ReadFile( input )
+    if err != nil {
+        fmt.Println("The file '" + input + "' could not be opened.")
+    } else {
+        execute( string( file ) )
+    }
+}
+
+func main() {
+    flag.Parse()
+    if len(flag.Args()) >= 2 {
+
+        switch flag.Arg(0) {
+        case "runFile": runFile(flag.Arg(1))
+        case "load":    // To Do
+        case "run":     execute(flag.Arg(1))
+        
+        default: 
+            fmt.Println("That argument '" + flag.Arg(0) + "' is not recognized.")
+        }
+
+    } else if len( flag.Args() ) >= 1 {
+
+        fileName    := strings.Split(flag.Arg(0), ".")
+        extension   := fileName[len(fileName)-1]
+
+        if extension == "die" || extension[:2] == "dy" {    // All files ending in '*.die' or '*.dy*' get executed.
+            runFile(flag.Arg(0))
+        } else { // Load a text file as a variable.
+            // To Do
+        }
+
+    } else {
+        prompt()
+    }
 }
