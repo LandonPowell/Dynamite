@@ -72,6 +72,7 @@ type atom struct {
     num     float64 // 'num' (a number)
     bit     bool    // 'bit' (a 1 or 0, True or False)
     fun     tree    // 'fun' (a function)
+    list    []tree  // 'list'
     file    []string// 'file'
 }
 
@@ -101,7 +102,9 @@ func atomize(preAtom tree) atom {
         } else {
             postAtom.bit = false 
         }
-
+    } else if preAtom.value == "list" {
+        postAtom.type = "list"
+        postAtom.list = preAtom.args
     } else { 
         postAtom.Type = "CAN NOT PARSE" 
     }
@@ -124,6 +127,7 @@ func evalAll(treeList []tree) tree {
     }
     return tree { value: "False" }
 }
+
 func evaluator(subTree tree) tree {
     if val, ok := variables[subTree.value]; ok {    // This returns variable values.
 
