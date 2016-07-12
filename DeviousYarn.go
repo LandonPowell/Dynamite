@@ -103,7 +103,7 @@ func atomize(preAtom tree) atom {
             postAtom.bit = false 
         }
     } else if preAtom.value == "list" {
-        postAtom.type = "list"
+        postAtom.Type = "list"
         postAtom.list = preAtom.args
     } else { 
         postAtom.Type = "CAN NOT PARSE" 
@@ -198,6 +198,43 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "off" }
 
+    } else if subTree.value == "divisible" {
+
+        if len(subTree.args) == 2 {
+
+            arg1 := atomize(evaluator(subTree.args[0]))
+            arg2 := atomize(evaluator(subTree.args[1]))
+
+            if arg1.Type == "num" && arg2.Type == "num" {
+
+                if  arg1.num != 0 && arg2.num != 0 &&
+                    int(arg1.num) % int(arg2.num) == 0 {
+
+                    return tree { value: "on"}
+
+                }
+                return tree { value: "off" }
+            }
+            return tree {   // Returns an error message for undefined names.
+                value: "ERROR",
+                args: []tree{
+                    tree {
+                        value:  "The 'divisible' function only takes 'num' types.\n" +
+                                "You've given '" + arg1.Type + "' and '" + arg2.Type + "'.",
+                    },
+                },
+            }
+        }
+
+        return tree {   // Returns an error message for undefined names.
+            value: "ERROR",
+            args: []tree{
+                tree { 
+                    value: "The 'divisible' function takes exactly two arguments.",
+                },
+            },
+        }
+
     } else if subTree.value == "kill" {
 
         return tree { value: "This is a built in function of DeviousYarn." }
@@ -213,7 +250,6 @@ func evaluator(subTree tree) tree {
         args: []tree{
             tree { 
                 value: "The word '" + subTree.value +  "' means nothing.",
-                args: []tree{},
             },
         },
     }
@@ -241,10 +277,10 @@ func prompt() {
     fmt.Println(" -Thanks for using DeviousYarn-! ")
 }
 
-func runFile(input string) {
-    file, err := ioutil.ReadFile( input )
+func runFile(filename string) {
+    file, err := ioutil.ReadFile( filename )
     if err != nil {
-        fmt.Println("The file '" + input + "' could not be opened.")
+        fmt.Println("The file '" + filename + "' could not be opened.")
     } else {
         execute( string( file ) )
     }
