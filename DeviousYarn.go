@@ -150,7 +150,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "off" }
 
-    } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'printf' minus templating.
+    } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'println' minus templating.
 
         if len(subTree.args) > 0 {
             
@@ -172,6 +172,18 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
+    
+    } else if subTree.value == "print" || subTree.value == "p" {
+
+            printArg := atomize(evaluator(subTree.args[0]))
+
+            switch printArg.Type {
+            case "str"  : fmt.Print(printArg.str)
+            case "num"  : fmt.Print(printArg.num)
+            default     : return tree { value: "on" }
+            }
+
+            return tree { value: "on" }
 
     } else if subTree.value == "rawOut" {   // This outputs the plaintext of a tree.
 
@@ -182,8 +194,14 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "off" }
 
+    } else if subTree.value == "kill" {
+
+        return tree { value: "This is a built in function of DeviousYarn." }
+
     } else if atomize(subTree).Type != "CAN NOT PARSE" {
+
         return subTree
+
     }
 
     return tree {   // Returns an error message for undefined names.
@@ -198,9 +216,9 @@ func evaluator(subTree tree) tree {
 }
 
 func execute(input string) {
-        tokenList           = lexer     ( input )
-        programTree.args    = parser    ( )
-        evaluator ( programTree )
+    tokenList           = lexer     ( input )
+    programTree.args    = parser    ( )
+    evaluator ( programTree )
 }
 
 func prompt() {
@@ -216,8 +234,7 @@ func prompt() {
         execute( input )
 
     }
-
-    fmt.Println(" Thanks for using DeviousYarn~! ")
+    fmt.Println(" -Thanks for using DeviousYarn-! ")
 }
 
 func runFile(input string) {
