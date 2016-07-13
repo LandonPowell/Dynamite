@@ -86,7 +86,11 @@ func atomize(preAtom tree) atom {
         if (firstChar == "\"") {
             postAtom.str    = preAtom.value[1:] 
         } else {
-            postAtom.str    = preAtom.value
+            postAtom.str    = strings.Replace( 
+                                strings.Replace(
+                                    preAtom.value[1:len(preAtom.value)-1], 
+                                    "\\'", "'", -1 ), 
+                                "\\\\", "\\", -1)
         }
 
     } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {  // If the value is a number.
@@ -146,13 +150,21 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "off" }
 
-    } else if subTree.value == "?" || subTree.value == "if" {   // Simple conditional.
+    } else if subTree.value == "?" || subTree.value == "if" {   // Simple conditional. "If"
 
         if len(subTree.args) > 1 && evaluator(subTree.args[0]).value == "on" {
             return evalAll(subTree.args[1:])
         }
 
         return tree { value: "off" }
+
+    } else if subTree.value == "-?" || subTree.value == "elf" { // Otherwise if conditional. "Else if"
+
+        
+
+    } else if subTree.value == "--" || subTree.value == "else" {// Otherwise conditional. "Else"
+
+        
 
     } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'println' minus templating.
 
