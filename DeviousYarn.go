@@ -99,7 +99,7 @@ func atomize(preAtom tree) atom {
     if firstChar == "\"" || firstChar == "'" {  // If the value is a string.
 
         postAtom.Type   = "str"
-        if (firstChar == "\"") {
+        if firstChar == "\"" {
             postAtom.str    = preAtom.value[1:] 
         } else {
             postAtom.str    = strings.Replace( 
@@ -122,9 +122,12 @@ func atomize(preAtom tree) atom {
         } else {
             postAtom.bit = false 
         }
+
     } else if preAtom.value == "list" {
+
         postAtom.Type = "list"
         postAtom.list = preAtom.args
+
     } else { 
         postAtom.Type = "CAN NOT PARSE" 
     }
@@ -148,6 +151,7 @@ func evalAll(treeList []tree) tree {
     return tree { value: "False" }
 }
 
+var lastCondition bool = true; // This checks if the last conditional was true or not, for the sake of the elf function (else if)
 func evaluator(subTree tree) tree {
     if val, ok := variables[subTree.value]; ok {    // This returns variable values.
 
@@ -159,28 +163,67 @@ func evaluator(subTree tree) tree {
 
     } else if subTree.value == "set" {  // Sets variables.
 
-        if len(subTree.args) > 1 {
+        if len(subTree.args) >= 2 {
             variables[subTree.args[0].value] = subTree.args[1]
             return subTree.args[1]
         }
 
         return tree { value: "off" }
 
+    // The following few values are in charge of conditionals.
     } else if subTree.value == "?" || subTree.value == "if" {   // Simple conditional. "If"
 
-        if len(subTree.args) > 1 && evaluator(subTree.args[0]).value == "on" {
+        if len(subTree.args) >= 2 && evaluator(subTree.args[0]).value == "on" {
+
+            lastCondition = true;
             return evalAll(subTree.args[1:])
+
+        } else {
+            lastCondition = false;
         }
 
         return tree { value: "off" }
 
     } else if subTree.value == "-?" || subTree.value == "elf" { // Otherwise if conditional. "Else if"
 
-        
+        if !lastCondition && len(subTree.args) >= 2 && 
+            evaluator(subTree.args[0]).value == "on" {
 
+            lastCondition = true;
+            return evalAll(subTree.args[1:])
+
+        }
+
+        return tree { value: "off" }
+
+    } else if subTree.value == "&?" || subTree.value == "alf" { // Also if conditional.
+
+        if lastCondition && len(subTree.args) >= 2 && 
+            evaluator(subTree.args[0]).value == "on" {
+
+            lastCondition = true;
+            return evalAll(subTree.args[1:])
+
+        }
+
+        return tree { value: "off" }
+
+    
     } else if subTree.value == "--" || subTree.value == "else" {// Otherwise conditional. "Else"
 
-        
+        if !lastCondition && len(subTree.args) >= 1 {
+            return evalAll(subTree.args)
+        }
+
+        return tree { value: "off" }
+
+    } else if subTree.value == "&&" || subTree.value == "also" {// Also conditional.
+
+        if lastCondition && len(subTree.args) >= 1 {
+            return evalAll(subTree.args)
+        }
+
+        return tree { value: "off" }
 
     } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'println' minus templating.
 
@@ -193,7 +236,7 @@ func evaluator(subTree tree) tree {
             case "num"  : fmt.Println(printArg.num)
             case "fun"  : fmt.Println(printArg.fun)
             case "file" : 
-                if len(subTree.args) > 1 {
+                if len(subTree.args) >= 2 { // To-do
                     fmt.Println(printArg.file)
                 } else {
                     fmt.Println(printArg.file)
@@ -272,7 +315,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "This is a built in function of DeviousYarn." }
 
-    } else if atomize(subTree).Type != "CAN NOT PARSE" { // Raw Data Types, such as 'str', 'num', etc.
+    } else if atomize(subTree).Type != "CAN NOT PARSE" {    // Raw Data Types, such as 'str', 'num', etc.
 
         return subTree
 
@@ -290,7 +333,41 @@ func evaluator(subTree tree) tree {
             }
         }
 
-        return tree { value : newString, args: []tree{} }
+        return tree { value: newString, args: []tree{} }
+
+    } else if subTree.value == "range" {
+        
+        var generatedList = tree { 
+            value: "list", 
+            args: []tree{},
+        }
+        
+        var start   = 0
+        var end     = 100
+        var iterate = 1
+
+        switch len(subTree.args) {
+        case 1:
+            end     = int(atomize(evaluate(subTree.args[0])).num)
+        case 2:
+            start   = int(atomize(evaluate(subTree.args[0])).num)
+            end     = int(atomize(evaluate(subTree.args[1])).num)
+        case 3:
+            start   = int(atomize(evaluate(subTree.args[0])).num)
+            end     = int(atomize(evaluate(subTree.args[1])).num)
+            iterate = int(atomize(evaluate(subTree.args[2])).num)
+        }
+
+        for x := start; x <= end; x += iterate {
+            generatedList.args = append(generatedList.args, 
+                tree { 
+                    value: strconv.Itoa(x), 
+                    args: []tree{},
+                })
+        }
+
+        return generatedList
+
     }
 
     return tree {   // Returns an error message for undefined names.
