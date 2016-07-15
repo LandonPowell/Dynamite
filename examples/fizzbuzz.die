@@ -1,4 +1,4 @@
-for { x range(100)
+each { x range(100)
     ?  { divisible(x 3)
         p('Fizz') }
     ?  { divisible(x 5)
