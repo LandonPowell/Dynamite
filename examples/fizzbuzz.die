@@ -1,7 +1,9 @@
 for { x range(100)
-    ? { divisible(x 3)
+    ?  { divisible(x 3)
         p('Fizz') }
-    ? { divisible(x 5)
+    ?  { divisible(x 5)
         p('Buzz') }
-    p(x)
+    -? { !:divisible(x 3)
+        p(x) }
+    o
 }
