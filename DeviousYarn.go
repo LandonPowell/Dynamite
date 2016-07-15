@@ -16,6 +16,8 @@ func contains(x string, z string) bool {    // Checks if char is in string.
     return false
 }
 
+var tokenList = []string{}
+
 // This is mostly self-explaining, but it's the tokenizer (obviously).
 func lexer(plaintext string) []string {     // Returns a list of tokens.
     strings     := "'(\\\\'|[^'])+'|\"[^\n]+"       // Regex for strings.
@@ -25,8 +27,6 @@ func lexer(plaintext string) []string {     // Returns a list of tokens.
     tokens  := regexp.MustCompile( strings+"|"+brackets+"|"+names )
     return tokens.FindAllString(plaintext, -1)
 }
-
-var tokenList = []string{}
 
 type tree struct { // Tree of processes. It can also be a value.
     value   string // If it's a value.
@@ -250,7 +250,32 @@ func evaluator(subTree tree) tree {
             fmt.Println()
             return tree { value: "off" }
         }
-    
+
+    } else if subTree.value == "not" || subTree.value == "!" {
+
+        if len(subTree.args) == 1 && evaluator(subTree.args[0]).value == "off" {
+            return tree { value: "on" }
+        }
+        return tree { value: "off" }
+
+    } else if subTree.value == "or" {
+
+        for _, x := range(subTree.args) {
+            if evaluator(x).value == "on" {
+                return tree { value: "on" }
+            }
+        }
+        return tree { value: "off" }
+
+    } else if subTree.value == "and" {
+
+        for _, x := range(subTree.args) {
+            if evaluator(x).value == "off" {
+                return tree { value: "off" }
+            }
+        }
+        return tree { value: "on" }
+
     } else if subTree.value == "print" || subTree.value == "p" {
 
         for _, x := range(subTree.args) {
@@ -273,6 +298,30 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
+
+    } else if atomize(subTree).Type != "CAN NOT PARSE" {    // Raw Data Types, such as 'str', 'num', etc. 
+                                                            // It's placed here so that it'll be reached quickly
+        return subTree
+
+    } else if subTree.value == "each" || subTree.value == "e" {
+
+        if len(subTree.args) >= 3 {
+            for _, x := range(evaluator(subTree.args[1]).args) {
+                variables[subTree.args[0].value] = x
+                evalAll(subTree.args[2:])
+            }
+            return tree { value: "on" }
+        }
+        return tree { value: "off" }
+
+    } else if subTree.value == "in" {
+
+        reader  := bufio.NewReader(os.Stdin)
+        in, _   := reader.ReadString('\n')
+        return tree {
+            value: "\"" + in[:len(in)-1],
+            args: []tree{},
+        }
 
     } else if subTree.value == "divisible" {
 
@@ -311,13 +360,9 @@ func evaluator(subTree tree) tree {
             },
         }
 
-    } else if subTree.value == "kill" {
+    } else if subTree.value == "add" {
 
-        return tree { value: "This is a built in function of DeviousYarn." }
-
-    } else if atomize(subTree).Type != "CAN NOT PARSE" {    // Raw Data Types, such as 'str', 'num', etc.
-
-        return subTree
+        
 
     } else if subTree.value == "concat" {
 
@@ -348,14 +393,14 @@ func evaluator(subTree tree) tree {
 
         switch len(subTree.args) {
         case 1:
-            end     = int(atomize(evaluate(subTree.args[0])).num)
+            end     = int(atomize(evaluator(subTree.args[0])).num)
         case 2:
-            start   = int(atomize(evaluate(subTree.args[0])).num)
-            end     = int(atomize(evaluate(subTree.args[1])).num)
+            start   = int(atomize(evaluator(subTree.args[0])).num)
+            end     = int(atomize(evaluator(subTree.args[1])).num)
         case 3:
-            start   = int(atomize(evaluate(subTree.args[0])).num)
-            end     = int(atomize(evaluate(subTree.args[1])).num)
-            iterate = int(atomize(evaluate(subTree.args[2])).num)
+            start   = int(atomize(evaluator(subTree.args[0])).num)
+            end     = int(atomize(evaluator(subTree.args[1])).num)
+            iterate = int(atomize(evaluator(subTree.args[2])).num)
         }
 
         for x := start; x <= end; x += iterate {
@@ -367,6 +412,11 @@ func evaluator(subTree tree) tree {
         }
 
         return generatedList
+
+    } else if subTree.value == "kill" {
+
+        // To-do
+        return tree { value: "This is a built in function of DeviousYarn." }
 
     }
 
@@ -417,7 +467,7 @@ func main() {
 
         switch flag.Arg(0) {
             case "runFile": runFile(flag.Arg(1))
-            case "load":    // To Do
+            case "load":    // To-do
             case "run":     execute(flag.Arg(1))
 
             default: fmt.Println(
@@ -434,7 +484,7 @@ func main() {
         if extension == "die" || extension[:2] == "dy" {    // All files ending in '*.die' or '*.dy*' get executed.
             runFile(flag.Arg(0))
         } else { // Load a text file as a variable.
-            // To Do
+            // To-do
         }
 
     } else {
