@@ -50,9 +50,25 @@ func parser() []tree {
         }
         tokenList = tokenList[1:] // Removes the first element in the slice.
 
-        if len(tokenList) > 0 && contains(tokenList[0], "{[(f") {
-            tokenList = tokenList[1:]
-            currentTree.args = parser()
+        if len(tokenList) > 0 {
+            if contains(tokenList[0], "{[(f") {
+                tokenList = tokenList[1:]
+                currentTree.args = parser()
+            } else if tokenList[0] == ":" {
+                tokenList = tokenList[1:]
+
+                var newTree = tree {
+                    value: tokenList[0],
+                    args: []tree{},
+                }
+                tokenList = tokenList[1:]
+
+                if len(tokenList) > 0 && contains(tokenList[0], "{[(f") {
+                    tokenList = tokenList[1:]
+                    newTree.args = parser()
+                }
+                currentTree.args = append(currentTree.args, newTree)
+            }
         }
 
         treeList = append(treeList, currentTree)
@@ -168,9 +184,9 @@ func evaluator(subTree tree) tree {
 
     } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'println' minus templating.
 
-        if len(subTree.args) > 0 {
+        for _, x := range(subTree.args) {
             
-            printArg := atomize(evaluator(subTree.args[0]))
+            printArg := atomize(evaluator(x))
 
             switch printArg.Type {  // Too bad I can't use printArg['str'] syntax.
             case "str"  : fmt.Println(printArg.str)
@@ -187,18 +203,23 @@ func evaluator(subTree tree) tree {
             return evaluator(subTree.args[0])
         }
 
-        return tree { value: "off" }
+        if len(subTree.args) == 0 {
+            fmt.Println()
+            return tree { value: "off" }
+        }
     
     } else if subTree.value == "print" || subTree.value == "p" {
 
-        printArg := atomize(evaluator(subTree.args[0]))
+        for _, x := range(subTree.args) {
+            printArg := atomize(evaluator(x))
 
-        switch printArg.Type {
-        case "str"  : fmt.Print(printArg.str)
-        case "num"  : fmt.Print(printArg.num)
-        default     : return tree { value: "on" }
+            switch printArg.Type {
+            case "str"  : fmt.Print(printArg.str)
+            case "num"  : fmt.Print(printArg.num)
+            default     : return tree { value: "off" }
+            }
         }
-
+    
         return tree { value: "on" }
 
     } else if subTree.value == "rawOut" {   // This outputs the plaintext of a tree.
@@ -251,10 +272,25 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "This is a built in function of DeviousYarn." }
 
-    } else if atomize(subTree).Type != "CAN NOT PARSE" {
+    } else if atomize(subTree).Type != "CAN NOT PARSE" { // Raw Data Types, such as 'str', 'num', etc.
 
         return subTree
 
+    } else if subTree.value == "concat" {
+
+        newString := "\""
+
+        for _, x := range(subTree.args) {
+            subString := atomize(evaluator(x))
+            newString += subString.str
+
+            if subString.Type != "str" {
+                fmt.Println(" -error- ")
+                fmt.Println("You used " + x.value + ", a '" + subString.Type + "' as a str.")
+            }
+        }
+
+        return tree { value : newString, args: []tree{} }
     }
 
     return tree {   // Returns an error message for undefined names.
