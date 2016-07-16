@@ -40,24 +40,24 @@ var programTree = tree { // Default tree of the entire program.
 
 // Instead of using 'tokenList' as an arg, we use a global token list. Recursion + Scope == Pain.
 func parseNext() tree { // This is the actual meat of 'parser'.
-    var currentTree = tree {
+    var currentTree = tree {    // Define the current token as a tree.
         value: tokenList[0],
         args: []tree{},
     }
-    tokenList = tokenList[1:] // Removes the first element in the slice.
+    tokenList = tokenList[1:]   // Removes the first element in the slice.
 
-    if len(tokenList) > 0 {
-        if contains(tokenList[0], "{[(f") {
-            tokenList = tokenList[1:]
-            currentTree.args = parser()
-        } else if tokenList[0] == ":" {
-            tokenList = tokenList[1:]
-            currentTree.args = append(currentTree.args, parseNext())
-        } else if tokenList[0] == "=" {
-            tokenList = tokenList[1:]
-            currentTree = tree { 
+    if len(tokenList) > 0 { // Everybody taking the chance. Safety dance.
+        if contains(tokenList[0], "{[(f") { // If the next token is an opening bracket.
+            tokenList = tokenList[1:]   // Remove it.
+            currentTree.args = parser() // Make a nest of it.
+        } else if tokenList[0] == ":" {     // If the next token is a monogomy symbol.
+            tokenList = tokenList[1:]   // Remove it.
+            currentTree.args = append(currentTree.args, parseNext())    // Nest it.
+        } else if tokenList[0] == "=" {     // If the next token is a decleration.
+            tokenList = tokenList[1:]   // Remove it.
+            currentTree = tree {    // Make the tree into a 'set' function.
                 value: "set",
-                args: []tree { currentTree, parseNext() },
+                args: []tree { currentTree, parseNext() },  // Which sets currentTree as the next function.
             }
         }
     }
