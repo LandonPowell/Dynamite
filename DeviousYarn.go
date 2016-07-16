@@ -320,6 +320,27 @@ func evaluator(subTree tree) tree {
             args: []tree{},
         }
     
+    } else if subTree.value == "equals" || subTree.value == "is" {  // Check for equality.
+
+        firstTree := evaluator(subTree.args[0])
+        for _, x := range(subTree.args[1:]) {
+            x = evaluator(x)
+
+            if len(x.args) != len(firstTree.args) ||
+                firstTree.value != x.value {
+
+                return tree { value: "off" }
+
+            }
+
+            for i, y := range(x.args) {
+                if y.value != firstTree.args[i].value {
+                    return tree { value: "off" }
+                }
+            }
+        }
+        return tree { value: "on" }
+
     // Mathmatical operators, such as adding numbers, checking for divisibility, etc.
     } else if subTree.value == "sum" {  // Sum all numerical args together.
 
