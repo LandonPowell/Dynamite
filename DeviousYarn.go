@@ -248,14 +248,14 @@ func evaluator(subTree tree) tree {
             return tree { value: "off" }
         }
 
-    } else if subTree.value == "not" || subTree.value == "!" {
+    } else if subTree.value == "not" || subTree.value == "!" {  // Boolean 'not'.
 
         if len(subTree.args) == 1 && evaluator(subTree.args[0]).value == "off" {
             return tree { value: "on" }
         }
         return tree { value: "off" }
 
-    } else if subTree.value == "or" {
+    } else if subTree.value == "or" {   // Boolean 'or'.
 
         for _, x := range(subTree.args) {
             if evaluator(x).value == "on" {
@@ -264,7 +264,7 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    } else if subTree.value == "and" {
+    } else if subTree.value == "and" {  // Boolean 'and'.
 
         for _, x := range(subTree.args) {
             if evaluator(x).value == "off" {
@@ -273,7 +273,7 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "on" }
 
-    } else if subTree.value == "print" || subTree.value == "p" {
+    } else if subTree.value == "print" || subTree.value == "p" {    // Print without a linebreak at the end.
 
         for _, x := range(subTree.args) {
             printArg := atomize(evaluator(x))
@@ -311,7 +311,7 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    } else if subTree.value == "in" {
+    } else if subTree.value == "in" {   // Standard input.
 
         reader  := bufio.NewReader(os.Stdin)
         in, _   := reader.ReadString('\n')
@@ -319,8 +319,79 @@ func evaluator(subTree tree) tree {
             value: "\"" + in[:len(in)-1],
             args: []tree{},
         }
+    
+    // Mathmatical operators, such as adding numbers, checking for divisibility, etc.
+    } else if subTree.value == "sum" {  // Sum all numerical args together.
 
-    } else if subTree.value == "divisible" {
+        number := 0.0
+        for _, x := range(subTree.args) {
+            number += atomize(evaluator(x)).num
+        }
+        return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+
+    } else if subTree.value == "subtract" {  // Starting with the leftmost number, subtract all numbers after it.
+
+        if len(subTree.args) >= 2 {
+            number := atomize(evaluator(subTree.args[0])).num
+            for _, x := range(subTree.args[1:]) {
+                number -= atomize(evaluator(x)).num
+            }
+            return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+        }
+        return tree { 
+            value: "ERROR",
+            args: []tree{
+                tree {
+                    value:  "The 'subtract' function takes two or more num args.",
+                },
+            },
+        }
+
+    } else if subTree.value == "multiply" {  // Multiply all numerical args together.
+
+        number := 1.0
+        for _, x := range(subTree.args) {
+            number *= atomize(evaluator(x)).num
+        }
+        return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+
+    } else if subTree.value == "divide" {  // Starting with the leftmost number, divide it by all following numbers.
+
+        if len(subTree.args) >= 2 {
+            number := atomize(evaluator(subTree.args[0])).num
+            for _, x := range(subTree.args[1:]) {
+                number /= atomize(evaluator(x)).num
+            }
+            return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+        }
+        return tree { 
+            value: "ERROR",
+            args: []tree{
+                tree {
+                    value:  "The 'divide' function takes two or more num args.",
+                },
+            },
+        }
+    
+    } else if subTree.value == "mod" {
+
+        if len(subTree.args) == 2 {
+
+            arg1 := atomize(evaluator(subTree.args[0]))
+            arg2 := atomize(evaluator(subTree.args[1]))
+            return tree { value: strconv.Itoa( int(arg1.num) % int(arg2.num) ) }
+        }
+
+        return tree {   // Returns an error message for undefined names.
+            value: "ERROR",
+            args: []tree{
+                tree { 
+                    value: "The 'mod' function takes exactly two arguments.",
+                },
+            },
+        }
+
+    } else if subTree.value == "divisible" {    // Check for divisibility. 
 
         if len(subTree.args) == 2 {
 
@@ -357,11 +428,7 @@ func evaluator(subTree tree) tree {
             },
         }
 
-    } else if subTree.value == "add" {
-
-        // To-do
-
-    } else if subTree.value == "concat" {
+    } else if subTree.value == "concat" {   // Concatonate strings.
 
         newString := "\""
 
