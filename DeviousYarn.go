@@ -21,7 +21,7 @@ var tokenList = []string{}
 // This is mostly self-explaining, but it's the tokenizer (obviously).
 func lexer(plaintext string) []string {     // Returns a list of tokens.
     strings     := "'(\\\\'|[^'])+'|\"[^\n]+"       // Regex for strings.
-    brackets    := "[\\[\\](){}:]"                  // Regex for bracket chars.
+    brackets    := "[\\[\\](){}:=]"                 // Regex for bracket chars.
     names       := "[\\w-@^-`~\\|*-/!-&;?]+"        // Regex for var names.
 
     tokens  := regexp.MustCompile( strings+"|"+brackets+"|"+names )
@@ -39,46 +39,43 @@ var programTree = tree { // Default tree of the entire program.
 }
 
 // Instead of using 'tokenList' as an arg, we use a global token list. Recursion + Scope == Pain.
-func parser() []tree {
-    var treeList = []tree{}
-    
-    for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") {
+func parseNext() tree { // This is the actual meat of 'parser'.
+    var currentTree = tree {
+        value: tokenList[0],
+        args: []tree{},
+    }
+    tokenList = tokenList[1:] // Removes the first element in the slice.
 
-        var currentTree = tree {
-            value: tokenList[0],
-            args: []tree{},
-        }
-        tokenList = tokenList[1:] // Removes the first element in the slice.
-
-        if len(tokenList) > 0 {
-            if contains(tokenList[0], "{[(f") {
-                tokenList = tokenList[1:]
-                currentTree.args = parser()
-            } else if tokenList[0] == ":" {
-                tokenList = tokenList[1:]
-
-                var newTree = tree {
-                    value: tokenList[0],
-                    args: []tree{},
-                }
-                tokenList = tokenList[1:]
-
-                if len(tokenList) > 0 && contains(tokenList[0], "{[(f") {
-                    tokenList = tokenList[1:]
-                    newTree.args = parser()
-                }
-                currentTree.args = append(currentTree.args, newTree)
+    if len(tokenList) > 0 {
+        if contains(tokenList[0], "{[(f") {
+            tokenList = tokenList[1:]
+            currentTree.args = parser()
+        } else if tokenList[0] == ":" {
+            tokenList = tokenList[1:]
+            currentTree.args = append(currentTree.args, parseNext())
+        } else if tokenList[0] == "=" {
+            tokenList = tokenList[1:]
+            currentTree = tree { 
+                value: "set",
+                args: []tree { currentTree, parseNext() },
             }
         }
-
-        treeList = append(treeList, currentTree)
     }
 
-    if len(tokenList) > 0 && contains(tokenList[0], "j)]}") {
-        tokenList = tokenList[1:]
+    return currentTree
+}
+
+func parser() []tree {
+    var treeList = []tree{} // Define the empty tree list.
+    
+    for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") { // So long as the current token isn't a closing character.
+        treeList = append(treeList, parseNext())    // Append the next parsed tree to the tree list.
+    }
+    if len(tokenList) > 0 && contains(tokenList[0], "j)]}") {   // If the next token is a closing character,
+        tokenList = tokenList[1:]                               // remove it.
     }
 
-    return treeList
+    return treeList // Return the tree list.
 }
 
 type atom struct {
@@ -362,7 +359,7 @@ func evaluator(subTree tree) tree {
 
     } else if subTree.value == "add" {
 
-        
+        // To-do
 
     } else if subTree.value == "concat" {
 
