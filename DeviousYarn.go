@@ -222,6 +222,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "off" }
 
+    // The following are in charge of simple I/O.
     } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'println' minus templating.
 
         for _, x := range(subTree.args) {
@@ -248,6 +249,39 @@ func evaluator(subTree tree) tree {
             return tree { value: "off" }
         }
 
+    } else if subTree.value == "print" || subTree.value == "p" {    // Print without a linebreak at the end.
+
+        for _, x := range(subTree.args) {
+            printArg := atomize(evaluator(x))
+
+            switch printArg.Type {
+            case "str"  : fmt.Print(printArg.str)
+            case "num"  : fmt.Print(printArg.num)
+            default     : return tree { value: "off" }
+            }
+        }
+    
+        return tree { value: "on" }
+
+    } else if subTree.value == "rawOut" {   // This outputs the plaintext of a tree.
+
+        if len(subTree.args) > 0 {
+            fmt.Println(evaluator(subTree.args[0]))
+            return subTree.args[0]
+        }
+
+        return tree { value: "off" }
+
+    } else if subTree.value == "in" {   // Standard input.
+
+        reader  := bufio.NewReader(os.Stdin)
+        in, _   := reader.ReadString('\n')
+        return tree {
+            value: "\"" + in[:len(in)-1],
+            args: []tree{},
+        }
+
+    // The following are boolean operators.
     } else if subTree.value == "not" || subTree.value == "!" {  // Boolean 'not'.
 
         if len(subTree.args) == 1 && evaluator(subTree.args[0]).value == "off" {
@@ -273,34 +307,94 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "on" }
 
-    } else if subTree.value == "print" || subTree.value == "p" {    // Print without a linebreak at the end.
-
-        for _, x := range(subTree.args) {
-            printArg := atomize(evaluator(x))
-
-            switch printArg.Type {
-            case "str"  : fmt.Print(printArg.str)
-            case "num"  : fmt.Print(printArg.num)
-            default     : return tree { value: "off" }
-            }
-        }
-    
-        return tree { value: "on" }
-
-    } else if subTree.value == "rawOut" {   // This outputs the plaintext of a tree.
+    // Simple comparison operators.
+    } else if subTree.value == "equals" || subTree.value == "is" {  // Check for equality.
 
         if len(subTree.args) > 0 {
-            fmt.Println(evaluator(subTree.args[0]))
-            return subTree.args[0]
+            firstTree := evaluator(subTree.args[0])
+            for _, x := range(subTree.args[1:]) {
+                x = evaluator(x)
+    
+                if len(x.args) != len(firstTree.args) ||
+                    firstTree.value != x.value {
+    
+                    return tree { value: "off" }
+    
+                }
+    
+                for i, y := range(x.args) {
+                    if y.value != firstTree.args[i].value {
+                        return tree { value: "off" }
+                    }
+                }
+            }
+            return tree { value: "on" }
         }
-
         return tree { value: "off" }
 
+    } else if subTree.value == "isMax" || subTree.value == ">" {
+
+        if len(subTree.args) > 0 {
+
+            firstAtom := atomize(evaluator(subTree.args[0]))
+            var secondAtom atom
+
+            for _, x := range(subTree.args[1:]) {
+                secondAtom = atomize(evaluator(x))
+                switch firstAtom.Type {
+                case "num":
+                    if firstAtom.num < secondAtom.num {
+                        return tree { value: "off" }
+                    }
+                case "str":
+                    if len(firstAtom.str) < len(secondAtom.str) {
+                        return tree { value: "off" }
+                    }
+                case "list":
+                    if len(firstAtom.list) < len(secondAtom.list) {
+                        return tree { value: "off" }
+                    }
+                }
+            }
+            return tree { value: "on" }
+        }
+        return tree { value: "off" }
+
+    } else if subTree.value == "isMin" || subTree.value == "<" {
+
+        if len(subTree.args) > 0 {
+
+            firstAtom := atomize(evaluator(subTree.args[0]))
+            var secondAtom atom
+
+            for _, x := range(subTree.args[1:]) {
+                secondAtom = atomize(evaluator(x))
+                switch firstAtom.Type {
+                case "num":
+                    if firstAtom.num > secondAtom.num {
+                        return tree { value: "off" }
+                    }
+                case "str":
+                    if len(firstAtom.str) > len(secondAtom.str) {
+                        return tree { value: "off" }
+                    }
+                case "list":
+                    if len(firstAtom.list) > len(secondAtom.list) {
+                        return tree { value: "off" }
+                    }
+                }
+            }
+            return tree { value: "on" }
+        }
+        return tree { value: "off" }
+
+    // Simple raw data type check using the atomize function.
     } else if atomize(subTree).Type != "CAN NOT PARSE" {    // Raw Data Types, such as 'str', 'num', etc. 
                                                             // It's placed here so that it'll be reached quickly
         return subTree
 
-    } else if subTree.value == "each" || subTree.value == "e" {
+    // Loops.
+    } else if subTree.value == "each" || subTree.value == "e" {     // For-each loop.
 
         if len(subTree.args) >= 3 {
             for _, x := range(evaluator(subTree.args[1]).args) {
@@ -311,35 +405,46 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    } else if subTree.value == "in" {   // Standard input.
+    } else if subTree.value == "while" || subTree.value == "w" {    // While-true loop.
 
-        reader  := bufio.NewReader(os.Stdin)
-        in, _   := reader.ReadString('\n')
-        return tree {
-            value: "\"" + in[:len(in)-1],
+        for evaluator(subTree.args[0]).value == "on" {
+            evalAll(subTree.args[1:])
+        }
+        return tree { value: "off" }
+
+    // List related functions and list generators.
+    } else if subTree.value == "range" {    // Range list generator.
+        
+        var generatedList = tree { 
+            value: "list",
             args: []tree{},
         }
-    
-    } else if subTree.value == "equals" || subTree.value == "is" {  // Check for equality.
+        
+        var start   = 0
+        var end     = 100
+        var iterate = 1
 
-        firstTree := evaluator(subTree.args[0])
-        for _, x := range(subTree.args[1:]) {
-            x = evaluator(x)
-
-            if len(x.args) != len(firstTree.args) ||
-                firstTree.value != x.value {
-
-                return tree { value: "off" }
-
-            }
-
-            for i, y := range(x.args) {
-                if y.value != firstTree.args[i].value {
-                    return tree { value: "off" }
-                }
-            }
+        switch len(subTree.args) {
+        case 1:
+            end     = int(atomize(evaluator(subTree.args[0])).num)
+        case 2:
+            start   = int(atomize(evaluator(subTree.args[0])).num)
+            end     = int(atomize(evaluator(subTree.args[1])).num)
+        case 3:
+            start   = int(atomize(evaluator(subTree.args[0])).num)
+            end     = int(atomize(evaluator(subTree.args[1])).num)
+            iterate = int(atomize(evaluator(subTree.args[2])).num)
         }
-        return tree { value: "on" }
+
+        for x := start; x <= end; x += iterate {
+            generatedList.args = append(generatedList.args, 
+                tree { 
+                    value: strconv.Itoa(x), 
+                    args: []tree{},
+                })
+        }
+
+        return generatedList
 
     // Mathmatical operators, such as adding numbers, checking for divisibility, etc.
     } else if subTree.value == "sum" {  // Sum all numerical args together.
@@ -449,6 +554,7 @@ func evaluator(subTree tree) tree {
             },
         }
 
+    // String manipulation functions.
     } else if subTree.value == "concat" {   // Concatonate strings.
 
         newString := "\""
@@ -465,43 +571,9 @@ func evaluator(subTree tree) tree {
 
         return tree { value: newString, args: []tree{} }
 
-    } else if subTree.value == "range" {
-        
-        var generatedList = tree { 
-            value: "list", 
-            args: []tree{},
-        }
-        
-        var start   = 0
-        var end     = 100
-        var iterate = 1
-
-        switch len(subTree.args) {
-        case 1:
-            end     = int(atomize(evaluator(subTree.args[0])).num)
-        case 2:
-            start   = int(atomize(evaluator(subTree.args[0])).num)
-            end     = int(atomize(evaluator(subTree.args[1])).num)
-        case 3:
-            start   = int(atomize(evaluator(subTree.args[0])).num)
-            end     = int(atomize(evaluator(subTree.args[1])).num)
-            iterate = int(atomize(evaluator(subTree.args[2])).num)
-        }
-
-        for x := start; x <= end; x += iterate {
-            generatedList.args = append(generatedList.args, 
-                tree { 
-                    value: strconv.Itoa(x), 
-                    args: []tree{},
-                })
-        }
-
-        return generatedList
-
     } else if subTree.value == "kill" {
 
-        // To-do
-        return tree { value: "This is a built in function of DeviousYarn." }
+        os.Exit(0)
 
     }
 
@@ -534,7 +606,6 @@ func prompt() {
         execute( input )
 
     }
-    fmt.Println(" -Thanks for using DeviousYarn-! ")
 }
 
 func runFile(filename string) {
