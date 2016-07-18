@@ -366,7 +366,7 @@ func evaluator(subTree tree) tree {
                     value: "ERROR",
                     args: []tree{
                         tree {
-                            value:  "The file '" + fileName + "' could not be opened.",
+                            value:  "The file '" + fileName + "' could not be opened for writing.",
                         },
                     },
                 }
