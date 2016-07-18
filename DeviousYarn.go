@@ -89,7 +89,7 @@ type atom struct {
     file    []tree  // 'file'
 }
 
-func atomize(preAtom tree) atom {
+func atomizer(preAtom tree) atom {
     var postAtom atom
 
     firstChar := string(preAtom.value[0]) 
@@ -138,6 +138,34 @@ func atomize(preAtom tree) atom {
 }
 
 var variables = make( map[string]tree )
+
+func loadFile(filename string) tree {
+    file, err := ioutil.ReadFile( filename )
+    if err != nil {
+        fmt.Println("The file '" + filename + "' could not be opened.")
+
+        return tree { 
+            value: "ERROR",
+            args: []tree{
+                tree {
+                    value:  "The file '" + filename + "' could not be loaded.",
+                },
+            },
+        }
+    } else {
+        fileArgs := []tree{ tree { value: "\"" + filename } }
+
+        for _, x := range(strings.Split(string(file), "\n")) {
+            fileArgs = append(fileArgs, tree { value: "\"" + x })
+        }
+
+        return tree {
+            value:  "file", 
+            args:   fileArgs,
+        }
+
+    }
+}
 
 func evalAll(treeList []tree) tree {
     for _, x := range(treeList) {
@@ -232,15 +260,17 @@ func evaluator(subTree tree) tree {
 
         for _, x := range(subTree.args) {
             
-            printArg := atomize(evaluator(x))
+            printArg := atomizer(evaluator(x))
 
             switch printArg.Type {  // Too bad I can't use printArg['str'] syntax.
             case "str"  : fmt.Println(printArg.str)
             case "num"  : fmt.Println(printArg.num)
             case "fun"  : fmt.Println(printArg.fun)
             case "file" : 
-                if len(subTree.args) >= 2 { // To-do
-                    fmt.Println(printArg.file)
+                if len(subTree.args) >= 2 {
+                    fmt.Println(
+                        printArg.file
+                        )
                 } else {
                     fmt.Println(printArg.file)
                 }
@@ -257,7 +287,7 @@ func evaluator(subTree tree) tree {
     } else if subTree.value == "print" || subTree.value == "p" {    // Print without a linebreak at the end.
 
         for _, x := range(subTree.args) {
-            printArg := atomize(evaluator(x))
+            printArg := atomizer(evaluator(x))
 
             switch printArg.Type {
             case "str"  : fmt.Print(printArg.str)
@@ -285,6 +315,12 @@ func evaluator(subTree tree) tree {
             value: "\"" + in[:len(in)-1],
             args: []tree{},
         }
+
+    } else if subTree.value == "loadFile" || subTree.value == "open" { // Open a file.
+
+        return loadFile(
+            atomizer( evaluator(subTree.args[0]) ).str,
+        )
 
     // The following are boolean operators.
     } else if subTree.value == "not" || subTree.value == "!" {  // Boolean 'not'.
@@ -341,11 +377,11 @@ func evaluator(subTree tree) tree {
 
         if len(subTree.args) > 0 {
 
-            firstAtom := atomize(evaluator(subTree.args[0]))
+            firstAtom := atomizer(evaluator(subTree.args[0]))
             var secondAtom atom
 
             for _, x := range(subTree.args[1:]) {
-                secondAtom = atomize(evaluator(x))
+                secondAtom = atomizer(evaluator(x))
                 switch firstAtom.Type {
                 case "num":
                     if firstAtom.num < secondAtom.num {
@@ -369,11 +405,11 @@ func evaluator(subTree tree) tree {
 
         if len(subTree.args) > 0 {
 
-            firstAtom := atomize(evaluator(subTree.args[0]))
+            firstAtom := atomizer(evaluator(subTree.args[0]))
             var secondAtom atom
 
             for _, x := range(subTree.args[1:]) {
-                secondAtom = atomize(evaluator(x))
+                secondAtom = atomizer(evaluator(x))
                 switch firstAtom.Type {
                 case "num":
                     if firstAtom.num > secondAtom.num {
@@ -393,8 +429,8 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    // Simple raw data type check using the atomize function.
-    } else if atomize(subTree).Type != "CAN NOT PARSE" {    // Raw Data Types, such as 'str', 'num', etc. 
+    // Simple raw data type check using the atomizer function.
+    } else if atomizer(subTree).Type != "CAN NOT PARSE" {    // Raw Data Types, such as 'str', 'num', etc. 
                                                             // It's placed here so that it'll be reached quickly
         return subTree
 
@@ -431,14 +467,14 @@ func evaluator(subTree tree) tree {
 
         switch len(subTree.args) {
         case 1:
-            end     = int(atomize(evaluator(subTree.args[0])).num)
+            end     = int(atomizer(evaluator(subTree.args[0])).num)
         case 2:
-            start   = int(atomize(evaluator(subTree.args[0])).num)
-            end     = int(atomize(evaluator(subTree.args[1])).num)
+            start   = int(atomizer(evaluator(subTree.args[0])).num)
+            end     = int(atomizer(evaluator(subTree.args[1])).num)
         case 3:
-            start   = int(atomize(evaluator(subTree.args[0])).num)
-            end     = int(atomize(evaluator(subTree.args[1])).num)
-            iterate = int(atomize(evaluator(subTree.args[2])).num)
+            start   = int(atomizer(evaluator(subTree.args[0])).num)
+            end     = int(atomizer(evaluator(subTree.args[1])).num)
+            iterate = int(atomizer(evaluator(subTree.args[2])).num)
         }
 
         for x := start; x <= end; x += iterate {
@@ -456,16 +492,16 @@ func evaluator(subTree tree) tree {
 
         number := 0.0
         for _, x := range(subTree.args) {
-            number += atomize(evaluator(x)).num
+            number += atomizer(evaluator(x)).num
         }
         return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
 
     } else if subTree.value == "subtract" {  // Starting with the leftmost number, subtract all numbers after it.
 
         if len(subTree.args) >= 2 {
-            number := atomize(evaluator(subTree.args[0])).num
+            number := atomizer(evaluator(subTree.args[0])).num
             for _, x := range(subTree.args[1:]) {
-                number -= atomize(evaluator(x)).num
+                number -= atomizer(evaluator(x)).num
             }
             return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
         }
@@ -482,16 +518,16 @@ func evaluator(subTree tree) tree {
 
         number := 1.0
         for _, x := range(subTree.args) {
-            number *= atomize(evaluator(x)).num
+            number *= atomizer(evaluator(x)).num
         }
         return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
 
     } else if subTree.value == "divide" {  // Starting with the leftmost number, divide it by all following numbers.
 
         if len(subTree.args) >= 2 {
-            number := atomize(evaluator(subTree.args[0])).num
+            number := atomizer(evaluator(subTree.args[0])).num
             for _, x := range(subTree.args[1:]) {
-                number /= atomize(evaluator(x)).num
+                number /= atomizer(evaluator(x)).num
             }
             return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
         }
@@ -508,8 +544,8 @@ func evaluator(subTree tree) tree {
 
         if len(subTree.args) == 2 {
 
-            arg1 := atomize(evaluator(subTree.args[0]))
-            arg2 := atomize(evaluator(subTree.args[1]))
+            arg1 := atomizer(evaluator(subTree.args[0]))
+            arg2 := atomizer(evaluator(subTree.args[1]))
             return tree { value: strconv.Itoa( int(arg1.num) % int(arg2.num) ) }
         }
 
@@ -526,8 +562,8 @@ func evaluator(subTree tree) tree {
 
         if len(subTree.args) == 2 {
 
-            arg1 := atomize(evaluator(subTree.args[0]))
-            arg2 := atomize(evaluator(subTree.args[1]))
+            arg1 := atomizer(evaluator(subTree.args[0]))
+            arg2 := atomizer(evaluator(subTree.args[1]))
 
             if arg1.Type == "num" && arg2.Type == "num" {
 
@@ -565,7 +601,7 @@ func evaluator(subTree tree) tree {
         newString := "\""
 
         for _, x := range(subTree.args) {
-            subString := atomize(evaluator(x))
+            subString := atomizer(evaluator(x))
             newString += subString.str
 
             if subString.Type != "str" {
@@ -622,24 +658,6 @@ func runFile(filename string) {
     }
 }
 
-func loadFile(varname string, filename string) {
-    file, err := ioutil.ReadFile( filename )
-    if err != nil {
-        fmt.Println("The file '" + filename + "' could not be opened.")
-    } else {
-        fileArgs := []tree{ tree { value: "\"" + filename } }
-
-        for _, x := range(strings.Split(string(file), "\n")) {
-            fileArgs = append(fileArgs, tree { value: "\"" + x })
-        }
-
-        variables[varname] = tree {
-            value:  "file", 
-            args:   fileArgs,
-        }
-    }
-}
-
 func main() {
     flag.Parse()
     if len(flag.Args()) >= 2 {
@@ -648,7 +666,7 @@ func main() {
             case "runFile": runFile(flag.Arg(1))
             case "run":     execute(flag.Arg(1))
             case "load":
-                loadFile("load", flag.Arg(1))
+                variables["load"] = loadFile(flag.Arg(0))
                 prompt()
 
             default: fmt.Println(
@@ -665,7 +683,8 @@ func main() {
         if extension == "die" || extension[:2] == "dy" {    // All files ending in '*.die' or '*.dy*' get executed.
             runFile(flag.Arg(0))
         } else { // Load a text file as a variable.
-            // To-do
+            variables["load"] = loadFile(flag.Arg(0))
+            prompt()
         }
 
     } else {
