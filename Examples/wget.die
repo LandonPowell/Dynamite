@@ -1,0 +1,2 @@
+p:"Enter a Domain: 
+out { get:in 'content' }
