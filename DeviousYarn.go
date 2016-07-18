@@ -347,13 +347,14 @@ func evaluator(subTree tree) tree {
 
     } else if subTree.value == "saveFile" || subTree.value == "save" {  // Save a file.
 
-        if len(subTree.args) > 0 && subTree.args[0].value == "file" {
-            fileName := atomizer( evaluator(subTree.args[0].args[0]) ).str
+        fileArg = evaluator(subTree.args[0])
+        if len(subTree.args) > 0 && fileArg.value == "file" {
+            fileName := atomizer( evaluator(fileArg.args[0]) ).str
 
             fileContent := []string{}
 
             for _, x := range(subTree.args[0].args[1:]) {
-                fileContent = append(fileContent, atomizer(x).str)
+                fileContent = append(fileContent, atomizer(evaluator(x)).str)
             }
 
             err := ioutil.WriteFile(fileName, 
