@@ -139,21 +139,21 @@ func atomizer(preAtom tree) atom {
 
 var variables = make( map[string]tree )
 
-func loadFile(filename string) tree {
-    file, err := ioutil.ReadFile( filename )
+func loadFile(fileName string) tree {
+    file, err := ioutil.ReadFile( fileName )
     if err != nil {
-        fmt.Println("The file '" + filename + "' could not be opened.")
+        fmt.Println("The file '" + fileName + "' could not be opened.")
 
         return tree { 
             value: "ERROR",
             args: []tree{
                 tree {
-                    value:  "The file '" + filename + "' could not be loaded.",
+                    value:  "The file '" + fileName + "' could not be loaded.",
                 },
             },
         }
     } else {
-        fileArgs := []tree{ tree { value: "\"" + filename } }
+        fileArgs := []tree{ tree { value: "\"" + fileName } }
 
         for _, x := range(strings.Split(string(file), "\n")) {
             fileArgs = append(fileArgs, tree { value: "\"" + x })
@@ -328,11 +328,60 @@ func evaluator(subTree tree) tree {
             args: []tree{},
         }
 
-    } else if subTree.value == "loadFile" || subTree.value == "open" { // Open a file.
+    } else if subTree.value == "loadFile" || subTree.value == "open" {  // Open a file.
 
+        fileName := atomizer( evaluator(subTree.args[0]) )
+        if fileName.Type != "str" {
+            return tree { 
+                value: "ERROR",
+                args: []tree{
+                    tree {
+                        value:  "The file loading function takes only strings.",
+                    },
+                },
+            }
+        }
         return loadFile(
             atomizer( evaluator(subTree.args[0]) ).str,
         )
+
+    } else if subTree.value == "saveFile" || subTree.value == "save" {  // Save a file.
+
+        if len(subTree.args) > 0 && subTree.args[0].value == "file" {
+            fileName := atomizer( evaluator(subTree.args[0].args[0]) ).str
+
+            fileContent := []string{}
+
+            for _, x := range(subTree.args[0].args[1:]) {
+                fileContent = append(fileContent, atomizer(x).str)
+            }
+
+            err := ioutil.WriteFile(fileName, 
+                []byte(strings.Join(fileContent, "\n")), 
+                0644)
+
+            if err != nil {
+                return tree { 
+                    value: "ERROR",
+                    args: []tree{
+                        tree {
+                            value:  "The file '" + fileName + "' could not be opened.",
+                        },
+                    },
+                }
+            }
+
+            return subTree.args[0]
+
+        }
+        return tree { 
+            value: "ERROR",
+            args: []tree{
+                tree {
+                    value:  "The file saving function requires a file argument.",
+                },
+            },
+        }
 
     // The following are boolean operators.
     } else if subTree.value == "not" || subTree.value == "!" {  // Boolean 'not'.
@@ -661,10 +710,10 @@ func prompt() {
     }
 }
 
-func runFile(filename string) {
-    file, err := ioutil.ReadFile( filename )
+func runFile(fileName string) {
+    file, err := ioutil.ReadFile( fileName )
     if err != nil {
-        fmt.Println("The file '" + filename + "' could not be opened.")
+        fmt.Println("The file '" + fileName + "' could not be opened.")
     } else {
         execute( string( file ) )
     }
