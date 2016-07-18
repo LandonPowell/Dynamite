@@ -8,6 +8,7 @@ import (
     "regexp"
     "strconv"
     "strings"
+    "net/http"
     "io/ioutil"
 )
 
@@ -348,7 +349,7 @@ func evaluator(subTree tree) tree {
 
     } else if subTree.value == "saveFile" || subTree.value == "save" {  // Save a file.
 
-        fileArg = evaluator(subTree.args[0])
+        fileArg := evaluator(subTree.args[0])
         if len(subTree.args) > 0 && fileArg.value == "file" {
             fileName := atomizer( evaluator(fileArg.args[0]) ).str
 
@@ -381,6 +382,33 @@ func evaluator(subTree tree) tree {
                     value:  "The file saving function requires a file argument.",
                 },
             },
+        }
+
+    } else if subTree.value == "get" {
+
+        domain := atomizer(evaluator(subTree.args[0])).str
+        response, err := http.Get(domain)
+
+        if err != nil {
+            return tree { 
+                value: "ERROR",
+                args: []tree{
+                    tree { value:  "The webpage '" + domain + "' could not be opened." },
+                },
+            }
+        }
+
+        pageContent, err := ioutil.ReadAll(response.Body)
+
+        websiteArgs := []tree{ tree { value: "\"" + domain } }
+
+        for _, x := range(strings.Split(string(pageContent), "\n")) {
+            websiteArgs = append(websiteArgs, tree { value: "\"" + x })
+        }
+
+        return tree {
+            value: "file",
+            args: websiteArgs,
         }
 
     // The following are boolean operators.
