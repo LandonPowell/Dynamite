@@ -88,6 +88,7 @@ type atom struct {
     fun     tree    // 'fun' (a function)
     list    []tree  // 'list'
     file    []tree  // 'file'
+    website []tree  // 'website'
 }
 
 func atomizer(preAtom tree) atom {
@@ -130,6 +131,11 @@ func atomizer(preAtom tree) atom {
 
         postAtom.Type = "file"
         postAtom.file = preAtom.args
+
+    } else if preAtom.value == "website" {
+
+        postAtom.Type       = "website"
+        postAtom.website    = preAtom.args
 
     } else { 
         postAtom.Type = "CAN NOT PARSE" 
@@ -268,18 +274,20 @@ func evaluator(subTree tree) tree {
     // The following are in charge of simple I/O.
     } else if subTree.value == "o" || subTree.value == "out" {  // This is a formated output, or 'println' minus templating.
 
-        for _, x := range(subTree.args) {
-            
-            printArg := atomizer(evaluator(x))
+        if len(subTree.args) > 0 {
+            firstArg := evaluator(subTree.args[0])
+            printArg := atomizer(firstArg)
 
             switch printArg.Type {  // Too bad I can't use printArg['str'] syntax.
             case "str"  : fmt.Println(printArg.str)
             case "num"  : fmt.Println(printArg.num)
             case "fun"  : fmt.Println(printArg.fun)
-            case "file" : 
+            case "file" :
                 if len(subTree.args) >= 2 {
                     fmt.Println(atomizer(
-                        printArg.file[int(atomizer(subTree.args[1]).num)],
+                        printArg.file[int(atomizer(
+                            evaluator(subTree.args[1]),
+                        ).num)],
                     ).str)
                 } else {
                     fmt.Println("fileName: " + atomizer(printArg.file[0]).str)
@@ -287,9 +295,21 @@ func evaluator(subTree tree) tree {
                         fmt.Println(strconv.Itoa(i+1) + "│" + atomizer(x).str)
                     }
                 }
+            case "website":
+                if len(subTree.args) >= 2 {
+                    switch atomizer(evaluator(subTree.args[1])).str {
+                    case "domain"   : fmt.Println(atomizer(printArg.website[0]).str)
+                    case "header"   : fmt.Println(atomizer(printArg.website[1]).str)
+                    case "content"  : fmt.Println(atomizer(printArg.website[2]).str)
+                    }
+                } else {
+                    fmt.Println("domain:  " + atomizer(printArg.website[0]).str)
+                    fmt.Println(" -header-\n" + atomizer(printArg.website[1]).str )
+                    fmt.Println(" -content-\n" + atomizer(printArg.website[2]).str )
+                }
             }
 
-            return evaluator(subTree.args[0])
+            return firstArg
         }
 
         if len(subTree.args) == 0 {
@@ -398,16 +418,18 @@ func evaluator(subTree tree) tree {
             }
         }
 
-        pageContent, err := ioutil.ReadAll(response.Body)
+        pageContent, _ := ioutil.ReadAll(response.Body)
 
-        websiteArgs := []tree{ tree { value: "\"" + domain } }
-
-        for _, x := range(strings.Split(string(pageContent), "\n")) {
-            websiteArgs = append(websiteArgs, tree { value: "\"" + x })
+        websiteArgs := []tree{ 
+            tree { value: "\"" + domain },
+            tree { value: "\"" + string(pageContent) },
+            tree { value: "\"" + string(pageContent) },
         }
 
+    	response.Body.Close()
+
         return tree {
-            value: "file",
+            value: "website",
             args: websiteArgs,
         }
 
