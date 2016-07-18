@@ -187,11 +187,16 @@ func evaluator(subTree tree) tree {
 
         return evaluator(val)
 
-    } else if subTree.value == "run" {  // This is a function similair to an anonymous function.
-
-        return evalAll(subTree.args)
-
     } else if subTree.value == "set" {  // Sets variables.
+
+        if len(subTree.args) >= 2 {
+            variables[subTree.args[0].value] = evaluator(subTree.args[1])
+            return variables[subTree.args[0].value]
+        }
+
+        return tree { value: "off" }
+
+    } else if subTree.value == "lazySet" {  // Sets a tree to a variable without evaluating it.
 
         if len(subTree.args) >= 2 {
             variables[subTree.args[0].value] = subTree.args[1]
@@ -199,6 +204,10 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
+
+    } else if subTree.value == "run" {  // This is a function similair to an anonymous function.
+
+        return evalAll(subTree.args)
 
     // The following few values are in charge of conditionals.
     } else if subTree.value == "?" || subTree.value == "if" {   // Simple conditional. "If"
@@ -268,11 +277,14 @@ func evaluator(subTree tree) tree {
             case "fun"  : fmt.Println(printArg.fun)
             case "file" : 
                 if len(subTree.args) >= 2 {
-                    fmt.Println(
-                        printArg.file
-                        )
+                    fmt.Println(atomizer(
+                        printArg.file[int(atomizer(subTree.args[1]).num)],
+                    ).str)
                 } else {
-                    fmt.Println(printArg.file)
+                    fmt.Println("fileName: " + atomizer(printArg.file[0]).str)
+                    for i, x := range(printArg.file[1:]) {
+                        fmt.Println(strconv.Itoa(i+1) + "│" + atomizer(x).str)
+                    }
                 }
             }
 
