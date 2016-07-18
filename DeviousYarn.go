@@ -57,7 +57,7 @@ func parseNext() tree { // This is the actual meat of 'parser'.
             tokenList = tokenList[1:]   // Remove it.
             currentTree = tree {    // Make the tree into a 'set' function.
                 value: "set",
-                args: []tree { currentTree, parseNext() },  // Which sets currentTree as the next function.
+                args: []tree{ currentTree, parseNext() },  // Which sets currentTree as the next function.
             }
         }
     }
@@ -65,7 +65,7 @@ func parseNext() tree { // This is the actual meat of 'parser'.
     return currentTree
 }
 
-func parser() []tree {
+func parser() []tree{
     var treeList = []tree{} // Define the empty tree list.
     
     for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") { // So long as the current token isn't a closing character.
@@ -86,7 +86,7 @@ type atom struct {
     bit     bool    // 'bit' (a 1 or 0, True or False)
     fun     tree    // 'fun' (a function)
     list    []tree  // 'list'
-    file    []string// 'file'
+    file    []tree  // 'file'
 }
 
 func atomize(preAtom tree) atom {
@@ -124,6 +124,11 @@ func atomize(preAtom tree) atom {
 
         postAtom.Type = "list"
         postAtom.list = preAtom.args
+
+    } else if preAtom.value == "file" {
+
+        postAtom.Type = "file"
+        postAtom.file = preAtom.args
 
     } else { 
         postAtom.Type = "CAN NOT PARSE" 
@@ -571,7 +576,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: newString, args: []tree{} }
 
-    } else if subTree.value == "kill" {
+    } else if subTree.value == "die" {
 
         os.Exit(0)
 
@@ -597,7 +602,7 @@ func prompt() {
     reader := bufio.NewReader(os.Stdin)
 
     var input string
-    for input != "kill\n" {
+    for {
 
         fmt.Println(" -input- ")
         input, _ = reader.ReadString('\n')
@@ -617,17 +622,37 @@ func runFile(filename string) {
     }
 }
 
+func loadFile(varname string, filename string) {
+    file, err := ioutil.ReadFile( filename )
+    if err != nil {
+        fmt.Println("The file '" + filename + "' could not be opened.")
+    } else {
+        fileArgs := []tree{ tree { value: "\"" + filename } }
+
+        for _, x := range(strings.Split(string(file), "\n")) {
+            fileArgs = append(fileArgs, tree { value: "\"" + x })
+        }
+
+        variables[varname] = tree {
+            value:  "file", 
+            args:   fileArgs,
+        }
+    }
+}
+
 func main() {
     flag.Parse()
     if len(flag.Args()) >= 2 {
 
         switch flag.Arg(0) {
             case "runFile": runFile(flag.Arg(1))
-            case "load":    // To-do
             case "run":     execute(flag.Arg(1))
+            case "load":
+                loadFile("load", flag.Arg(1))
+                prompt()
 
             default: fmt.Println(
-                                    "That argument '" + 
+                                    "The argument '" + 
                                     flag.Arg(0) + 
                                     "' is not recognized.")
         }
