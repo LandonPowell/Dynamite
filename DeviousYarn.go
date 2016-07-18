@@ -307,7 +307,7 @@ func evaluator(subTree tree) tree {
             default     : return tree { value: "off" }
             }
         }
-    
+
         return tree { value: "on" }
 
     } else if subTree.value == "rawOut" {   // This outputs the plaintext of a tree.
@@ -328,6 +328,7 @@ func evaluator(subTree tree) tree {
             args: []tree{},
         }
 
+    // File i/o and editing.
     } else if subTree.value == "loadFile" || subTree.value == "open" {  // Open a file.
 
         fileName := atomizer( evaluator(subTree.args[0]) )
