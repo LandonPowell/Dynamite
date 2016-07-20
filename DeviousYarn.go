@@ -12,7 +12,8 @@ import (
     "io/ioutil"
 )
 
-func contains(x string, z string) bool {    // Checks if char is in string.
+func contains(x string, z string) bool {
+    // Checks if char is in string.
     for _, y := range z { if x == string(y) { return true } }
     return false
 }
@@ -21,7 +22,8 @@ var tokenList = []string{}
 
 // This is mostly self-explaining, but it's the tokenizer (obviously).
 // It's basically just a wrapper for a big ass regex that'd be unreadable otherwise. 
-func lexer(plaintext string) []string {     // Returns a list of tokens.
+func lexer(plaintext string) []string {
+    // Returns a list of tokens.
     strings     := "'(\\\\\\\\|\\\\'|[^'])+'|\"[^\n]+"  // Regex for strings. http://www.xkcd.com/1638/
     brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
     names       := "[^\\s\\[\\](){}:='\"]+"             // Regex for var names.
@@ -41,24 +43,29 @@ var programTree = tree { // Default tree of the entire program.
 }
 
 // Instead of using 'tokenList' as an arg, we use a global token list. Recursion + Scope == Pain.
-func parseNext() tree { // This is the actual meat of 'parser'.
+func parseNext() tree { 
+    // This is the actual meat of 'parser'.
+
     var currentTree = tree {    // Define the current token as a tree.
         value: tokenList[0],
         args: []tree{},
     }
     tokenList = tokenList[1:]   // Removes the first element in the slice.
 
-    if len(tokenList) > 0 { // Everybody taking the chance. Safety dance.
+    if len(tokenList) > 0 { // Everybody taking the chance... Safety dance.
 
-        if contains(tokenList[0], "{[(f") { // If the next token is an opening bracket.
+        if contains(tokenList[0], "{[(f") { 
+            // If the next token is an opening bracket.
             tokenList = tokenList[1:]   // Remove it.
             currentTree.args = parser() // Make a nest of it.
 
-        } else if tokenList[0] == ":" {     // If the next token is a monogomy symbol.
+        } else if tokenList[0] == ":" {
+            // If the next token is a monogomy symbol.
             tokenList = tokenList[1:]   // Remove it.
             currentTree.args = append(currentTree.args, parseNext())    // Nest it.
 
-        } else if tokenList[0] == "=" {     // If the next token is a decleration.
+        } else if tokenList[0] == "=" {
+            // If the next token is a decleration.
             tokenList = tokenList[1:]   // Remove it.
             currentTree = tree {    // Make the tree into a 'set' function.
                 value: "set",
@@ -72,13 +79,16 @@ func parseNext() tree { // This is the actual meat of 'parser'.
 }
 
 func parser() []tree{
+    // The token list is looped through and trees are created.
     var treeList = []tree{} // Define the empty tree list.
     
-    for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") { // So long as the current token isn't a closing character.
+    for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") { 
+        // So long as the current token isn't a closing character.
         treeList = append(treeList, parseNext())    // Append the next parsed tree to the tree list.
     }
-    if len(tokenList) > 0 && contains(tokenList[0], "j)]}") {   // If the next token is a closing character,
-        tokenList = tokenList[1:]                               // remove it.
+    if len(tokenList) > 0 && contains(tokenList[0], "j)]}") {   
+        // If the next token is a closing character,
+        tokenList = tokenList[1:] // remove it.
     }
 
     return treeList // Return the tree list.
@@ -100,13 +110,17 @@ func atomizer(preAtom tree) atom {
     var postAtom atom
 
     firstChar := string(preAtom.value[0]) 
-    if firstChar == "\"" || firstChar == "'" {  // If the value is a string.
+    if firstChar == "\"" || firstChar == "'" {
+        // If the value is a string (or str).
 
-        postAtom.Type   = "str"
+        postAtom.Type   = "str" // Firstly, declare the Type as 'str'
+
         if firstChar == "\"" {
+            // If the first char is the string-line indicator (doublequote).
             postAtom.str    = preAtom.value[1:] 
         } else {
-            postAtom.str = preAtom.value[1:len(preAtom.value)-1]
+            // If the first char is a single quote.
+            postAtom.str = preAtom.value[1:len(preAtom.value)-1] // Clip off the ends.
 
             replaceMap := map[string]string {
                 "'": "'",
@@ -120,12 +134,14 @@ func atomizer(preAtom tree) atom {
             }
         }
 
-    } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {  // If the value is a number.
+    } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {
+        // If the value is a number.
 
         postAtom.Type   = "num"
         postAtom.num, _ = strconv.ParseFloat(preAtom.value, 64)
 
-    } else if preAtom.value == "on" || preAtom.value == "off" { // If the value is a bit/bool.
+    } else if preAtom.value == "on" || preAtom.value == "off" { 
+        // If the value is a bit/bool.
 
         postAtom.Type   = "bit"
         if preAtom.value == "on" {
@@ -279,11 +295,13 @@ func evalAll(treeList []tree) tree {
 
 var lastCondition bool = true; // This checks the last conditional for the elf and alf functions.
 func evaluator(subTree tree) tree {
-    if val, ok := variables[subTree.value]; ok {    // This returns variable values.
+    if val, ok := variables[subTree.value]; ok {
+        // This returns variable values.
         return evaluator(val)
     } 
 
-    if atomizer(subTree).Type != "CAN NOT PARSE" {  // Raw Data Types, such as 'str', 'num', etc. 
+    if atomizer(subTree).Type != "CAN NOT PARSE" {  
+        // Raw Data Types, such as 'str', 'num', etc. 
         return subTree
     }
 
@@ -363,7 +381,7 @@ func evaluator(subTree tree) tree {
             firstArg := evaluator(subTree.args[0])
             printArg := atomizer(firstArg)
 
-            if printArg.Type == "file" {  // Too bad I can't use printArg['str'] syntax.
+            if printArg.Type == "file" {
                 if len(subTree.args) == 2 {
                     fmt.Println(atomizer(
                         printArg.file[int(atomizer(
@@ -764,7 +782,7 @@ func evaluator(subTree tree) tree {
             return tree { value: strconv.Itoa( int(arg1.num) % int(arg2.num) ) }
         }
 
-        return tree {   // Returns an error message for undefined names.
+        return tree {
             value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'mod' function takes exactly two arguments.",
@@ -787,7 +805,7 @@ func evaluator(subTree tree) tree {
                 }
                 return tree { value: "off" }
             }
-            return tree {   // Returns an error message for undefined names.
+            return tree {
                 value: " -error- ",
                 args: []tree{ tree {
                     value:  "The 'divisible' function only takes 'num' types.\n" +
@@ -796,7 +814,7 @@ func evaluator(subTree tree) tree {
             }
         }
 
-        return tree {   // Returns an error message for undefined names.
+        return tree {
             value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'divisible' function takes exactly two arguments.",
@@ -834,7 +852,7 @@ func evaluator(subTree tree) tree {
             )
         }
 
-        return tree {   // Returns an error message for undefined names.
+        return tree {
             value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'typeConvert' function takes exactly two arguments.",
@@ -854,13 +872,20 @@ func evaluator(subTree tree) tree {
     }
 }
 
-func execute(input string) {
+func execute(input string) {    
+    /*  This goes through all three major functions,
+        the lezer, parser, and evaluator, and then 
+        executes all of them on the input string.
+     */
     tokenList           = lexer     ( input )
     programTree.args    = parser    ( )
     evaluator ( programTree )
 }
 
 func prompt() {
+    /*  This creates a simple entry prompt for the user,
+        which allows them to give simple input at the CLI.
+     */
     reader := bufio.NewReader(os.Stdin)
     for {
         fmt.Println(" -input- ")
@@ -901,9 +926,11 @@ func main() {
         fileName    := strings.Split(flag.Arg(0), ".")
         extension   := fileName[len(fileName)-1]
 
-        if extension == "die" || extension[:2] == "dy" {    // All files ending in '*.die' or '*.dy*' get executed.
+        if extension == "die" || extension[:2] == "dy" {
+            // All files ending in '*.die' or '*.dy*' get executed.
             runFile(flag.Arg(0))
-        } else { // Load a text file as a variable.
+        } else { 
+            // Load a text file as a variable.
             variables["load"] = loadFile(flag.Arg(0))
             prompt()
         }
