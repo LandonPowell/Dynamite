@@ -709,7 +709,7 @@ func evaluator(subTree tree) tree {
         for _, x := range(subTree.args) {
             number += atomizer(evaluator(x)).num
         }
-        return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+        return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
 
     case "subtract":    // Starting with the leftmost number, subtract all numbers after it.
         if len(subTree.args) >= 2 {
@@ -717,7 +717,7 @@ func evaluator(subTree tree) tree {
             for _, x := range(subTree.args[1:]) {
                 number -= atomizer(evaluator(x)).num
             }
-            return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+            return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
         }
         return tree { 
             value: "ERROR",
@@ -731,7 +731,7 @@ func evaluator(subTree tree) tree {
         for _, x := range(subTree.args) {
             number *= atomizer(evaluator(x)).num
         }
-        return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+        return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
 
     case "divide":  // Starting with the leftmost number, divide it by all following numbers.
         if len(subTree.args) >= 2 {
@@ -739,7 +739,7 @@ func evaluator(subTree tree) tree {
             for _, x := range(subTree.args[1:]) {
                 number /= atomizer(evaluator(x)).num
             }
-            return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
+            return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
         }
         return tree { 
             value: "ERROR",
