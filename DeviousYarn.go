@@ -280,7 +280,6 @@ func evaluator(subTree tree) tree {
 
     switch subTree.value {
     case "set": // Sets variables.
-
         if len(subTree.args) == 2 {
             variables[subTree.args[0].value] = evaluator(subTree.args[1])
             return variables[subTree.args[0].value]
@@ -289,8 +288,7 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "lazySet": // Sets a tree to a variable without evaluating it.
-
-        if len(subTree.args) >= 2 {
+        if len(subTree.args) == 2 {
             variables[subTree.args[0].value] = subTree.args[1]
             return subTree.args[1]
         }
@@ -298,12 +296,10 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "run": // This is a function similair to an anonymous function.
-
         return evalAll(subTree.args)
 
     // The following few values are in charge of conditionals.
     case "?", "if": // Simple conditional. "If"
-
         if len(subTree.args) >= 2 && 
             typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
 
@@ -317,7 +313,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "-?", "elf":   // Otherwise if conditional. "Else if"
-
         if !lastCondition && len(subTree.args) >= 2 && 
             typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
 
@@ -329,7 +324,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "&?", "alf":   // Also if conditional.
-
         if lastCondition && len(subTree.args) >= 2 && 
             typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
 
@@ -342,7 +336,6 @@ func evaluator(subTree tree) tree {
 
     
     case "--", "else":  // Otherwise conditional. "Else"
-
         if !lastCondition && len(subTree.args) >= 1 {
             return evalAll(subTree.args)
         }
@@ -350,7 +343,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "&&", "also":  // Also conditional.
-
         if lastCondition && len(subTree.args) >= 1 {
             return evalAll(subTree.args)
         }
@@ -359,13 +351,12 @@ func evaluator(subTree tree) tree {
 
     // The following are in charge of simple I/O.
     case "o", "out":    // This is a formated output, or 'println' minus templating.
-
         if len(subTree.args) > 0 {
             firstArg := evaluator(subTree.args[0])
             printArg := atomizer(firstArg)
 
             if printArg.Type == "file" {  // Too bad I can't use printArg['str'] syntax.
-                if len(subTree.args) >= 2 {
+                if len(subTree.args) == 2 {
                     fmt.Println(atomizer(
                         printArg.file[int(atomizer(
                             evaluator(subTree.args[1]),
@@ -378,7 +369,7 @@ func evaluator(subTree tree) tree {
                     }
                 }
             } else if printArg.Type == "website" {
-                if len(subTree.args) >= 2 {
+                if len(subTree.args) == 2 {
                     switch atomizer(evaluator(subTree.args[1])).str {
                     case "domain"   : fmt.Println(atomizer(printArg.website[0]).str)
                     case "header"   : fmt.Println(atomizer(printArg.website[1]).str)
@@ -401,7 +392,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "print", "p":  // Print without a linebreak at the end.
-
         for _, x := range(subTree.args) {
             x = typeConverter(evaluator(x), "str")
             fmt.Print(atomizer(x).str)
@@ -410,7 +400,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "on" }
 
     case "rawOut":  // This outputs the plaintext of a tree.
-
         if len(subTree.args) > 0 {
             fmt.Println(evaluator(subTree.args[0]))
             return subTree.args[0]
@@ -419,7 +408,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "in":  // Standard input.
-
         reader  := bufio.NewReader(os.Stdin)
         in, _   := reader.ReadString('\n')
         return tree {
@@ -429,7 +417,6 @@ func evaluator(subTree tree) tree {
 
     // File i/o and editing.
     case "loadFile", "open":    // Open a file.
-
         fileName := atomizer( evaluator(subTree.args[0]) )
         if fileName.Type != "str" {
             return tree { 
@@ -444,7 +431,6 @@ func evaluator(subTree tree) tree {
         )
 
     case "saveFile", "save":    // Save a file.
-
         fileArg := evaluator(subTree.args[0])
         if len(subTree.args) > 0 && fileArg.value == "file" {
             fileName := atomizer( evaluator(fileArg.args[0]) ).str
@@ -478,8 +464,7 @@ func evaluator(subTree tree) tree {
             } },
         }
 
-    case "get":
-
+    case "get": // HTTP get request.
         domain := atomizer(evaluator(subTree.args[0])).str
         response, err := http.Get(domain)
 
@@ -509,14 +494,12 @@ func evaluator(subTree tree) tree {
 
     // The following are boolean operators.
     case "not", "!":    // Boolean 'not'.
-
         if len(subTree.args) == 1 && evaluator(subTree.args[0]).value == "off" {
             return tree { value: "on" }
         }
         return tree { value: "off" }
 
     case "or":  // Boolean 'or'.
-
         for _, x := range(subTree.args) {
             if evaluator(x).value == "on" {
                 return tree { value: "on" }
@@ -525,7 +508,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "and": // Boolean 'and'.
-
         for _, x := range(subTree.args) {
             if evaluator(x).value == "off" {
                 return tree { value: "off" }
@@ -535,7 +517,6 @@ func evaluator(subTree tree) tree {
 
     // Simple comparison operators.
     case "equals", "is":    // Check for equality.
-
         if len(subTree.args) > 0 {
             firstTree := evaluator(subTree.args[0])
             for _, x := range(subTree.args[1:]) {
@@ -559,8 +540,7 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    case "isMax", ">":
-
+    case "isMax", ">":  // Greater than / Check if the largest element in the list.
         if len(subTree.args) > 0 {
 
             firstAtom := atomizer(evaluator(subTree.args[0]))
@@ -587,8 +567,7 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    case "isMin", "<":
-
+    case "isMin", "<":  // Less than / Check if smallest element in list.
         if len(subTree.args) > 0 {
 
             firstAtom := atomizer(evaluator(subTree.args[0]))
@@ -617,7 +596,6 @@ func evaluator(subTree tree) tree {
 
     // Loops.
     case "each", "e":   // For-each loop.
-
         if len(subTree.args) >= 3 {
             for _, x := range(evaluator(subTree.args[1]).args) {
                 variables[subTree.args[0].value] = x
@@ -628,7 +606,6 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "while", "w":  // While-true loop.
-
         for evaluator(subTree.args[0]).value == "on" {
             evalAll(subTree.args[1:])
         }
@@ -669,7 +646,6 @@ func evaluator(subTree tree) tree {
         return generatedList
 
     case "append", "a": // Append to a list.
-
         if len(subTree.args) > 0 {
             list := evaluator(subTree.args[0]).args
             for _, x := range(subTree.args[1:]) {
@@ -689,8 +665,7 @@ func evaluator(subTree tree) tree {
         }
 
     case "index", "i":  // Element at an index.
-
-        if len(subTree.args) >= 2 {
+        if len(subTree.args) == 2 {
             list    := evaluator(subTree.args[0])
             index   := int(atomizer(evaluator(subTree.args[1])).num)
             if index >= 0 {
@@ -715,7 +690,6 @@ func evaluator(subTree tree) tree {
         }
 
     case "length":  // Length of a list.
-
         if len(subTree.args) == 1 {
             return tree {
                 value: strconv.Itoa(len(evaluator(subTree.args[0]).args)),
@@ -731,7 +705,6 @@ func evaluator(subTree tree) tree {
 
     // Mathmatical operators, such as adding numbers, checking for divisibility, etc.
     case "sum": // Sum all numerical args together.
-
         number := 0.0
         for _, x := range(subTree.args) {
             number += atomizer(evaluator(x)).num
@@ -739,7 +712,6 @@ func evaluator(subTree tree) tree {
         return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
 
     case "subtract":    // Starting with the leftmost number, subtract all numbers after it.
-
         if len(subTree.args) >= 2 {
             number := atomizer(evaluator(subTree.args[0])).num
             for _, x := range(subTree.args[1:]) {
@@ -755,7 +727,6 @@ func evaluator(subTree tree) tree {
         }
 
     case "multiply":    // Multiply all numerical args together.
-
         number := 1.0
         for _, x := range(subTree.args) {
             number *= atomizer(evaluator(x)).num
@@ -763,7 +734,6 @@ func evaluator(subTree tree) tree {
         return tree { value: strconv.FormatFloat(number, 'E', -1, 64) }
 
     case "divide":  // Starting with the leftmost number, divide it by all following numbers.
-
         if len(subTree.args) >= 2 {
             number := atomizer(evaluator(subTree.args[0])).num
             for _, x := range(subTree.args[1:]) {
@@ -779,7 +749,6 @@ func evaluator(subTree tree) tree {
         }
     
     case "mod", "modulo": // Division with a reminader, modulo.
-
         if len(subTree.args) == 2 {
 
             arg1 := atomizer(evaluator(subTree.args[0]))
@@ -795,7 +764,6 @@ func evaluator(subTree tree) tree {
         }
 
     case "divisible":   // Check for divisibility. 
-
         if len(subTree.args) == 2 {
 
             arg1 := atomizer(evaluator(subTree.args[0]))
@@ -829,7 +797,6 @@ func evaluator(subTree tree) tree {
 
     // String manipulation functions.
     case "concat":  // Concatonate strings.
-
         newString := "\""
 
         for _, x := range(subTree.args) {
@@ -846,13 +813,11 @@ func evaluator(subTree tree) tree {
 
     // Type conversions.
     case "bit", "num", "str":
-
         return typeConverter(subTree.args[0], subTree.value)
 
-    case "typeConvert":
-
+    case "typeConvert": // Convert any type to any other type using a string.
         if len(subTree.args) == 2 {
-            return typeConverter(subTree.args[0], subTree.args[1])
+            return typeConverter(subTree.args[0], atomizer(subTree.args[1]).str)
         }
 
         return tree {   // Returns an error message for undefined names.
@@ -864,7 +829,6 @@ func evaluator(subTree tree) tree {
 
     // Kill DeviousYarn.
     case "die":
-
         os.Exit(0)
 
     }
