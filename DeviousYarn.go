@@ -20,10 +20,11 @@ func contains(x string, z string) bool {    // Checks if char is in string.
 var tokenList = []string{}
 
 // This is mostly self-explaining, but it's the tokenizer (obviously).
+// It's basically just a wrapper for a big ass regex that'd be unreadable otherwise. 
 func lexer(plaintext string) []string {     // Returns a list of tokens.
-    strings     := "'(\\\\'|[^'])+'|\"[^\n]+"       // Regex for strings.
-    brackets    := "[\\[\\](){}:=]"                 // Regex for bracket chars.
-    names       := "[\\w-@^-`~\\|*-/!-&;?]+"        // Regex for var names.
+    strings     := "'(\\\\\\\\|\\\\'|[^'])+'|\"[^\n]+"  // Regex for strings. http://www.xkcd.com/1638/
+    brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
+    names       := "[^\\s\\[\\](){}:='\"]+"             // Regex for var names.
 
     tokens  := regexp.MustCompile( strings+"|"+brackets+"|"+names )
     return tokens.FindAllString(plaintext, -1)
@@ -48,18 +49,22 @@ func parseNext() tree { // This is the actual meat of 'parser'.
     tokenList = tokenList[1:]   // Removes the first element in the slice.
 
     if len(tokenList) > 0 { // Everybody taking the chance. Safety dance.
+
         if contains(tokenList[0], "{[(f") { // If the next token is an opening bracket.
             tokenList = tokenList[1:]   // Remove it.
             currentTree.args = parser() // Make a nest of it.
+
         } else if tokenList[0] == ":" {     // If the next token is a monogomy symbol.
             tokenList = tokenList[1:]   // Remove it.
             currentTree.args = append(currentTree.args, parseNext())    // Nest it.
+
         } else if tokenList[0] == "=" {     // If the next token is a decleration.
             tokenList = tokenList[1:]   // Remove it.
             currentTree = tree {    // Make the tree into a 'set' function.
                 value: "set",
                 args: []tree{ currentTree, parseNext() },  // Which sets currentTree as the next function.
             }
+
         }
     }
 
@@ -101,11 +106,18 @@ func atomizer(preAtom tree) atom {
         if firstChar == "\"" {
             postAtom.str    = preAtom.value[1:] 
         } else {
-            postAtom.str    = strings.Replace( 
-                                strings.Replace(
-                                    preAtom.value[1:len(preAtom.value)-1], 
-                                    "\\'", "'", -1 ), 
-                                "\\\\", "\\", -1)
+            postAtom.str = preAtom.value[1:len(preAtom.value)-1]
+
+            replaceMap := map[string]string {
+                "'": "'",
+                "n": "\n",
+                "t": "\t",
+                "\\": "\\",
+            }
+
+            for x, y := range(replaceMap) {
+                postAtom.str = strings.Replace(postAtom.str, "\\" + x, y, -1)
+            }
         }
 
     } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {  // If the value is a number.
@@ -188,7 +200,9 @@ func typeConverter(oldTree tree, newType string) tree {
     if oldType == "str" {
         switch newType {
         case "num":
-            return tree { value: oldAtom.str }
+            if _, err := strconv.ParseFloat(oldAtom.str, 64); err == nil {
+                return tree { value: oldAtom.str }
+            }
         case "bit":
             if len(oldAtom.str) <= 0 {
                 return tree { value: "off" }
@@ -218,12 +232,7 @@ func typeConverter(oldTree tree, newType string) tree {
         }
     }
     
-    return tree {
-        value: "ERROR",
-        args: []tree{ tree{
-            value: "Can't convert '" + oldTree.value + "' to a " + newType + ".",
-        } },
-    }
+    return tree { value: "off" }
 }
 
 var variables = make( map[string]tree )
@@ -234,7 +243,7 @@ func loadFile(fileName string) tree {
         fmt.Println("The file '" + fileName + "' could not be opened.")
 
         return tree { 
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree {
                 value:  "The file '" + fileName + "' could not be loaded.",
             } },
@@ -258,7 +267,7 @@ func evalAll(treeList []tree) tree {
     for _, x := range(treeList) {
         currentRun := evaluator(x)
 
-        if currentRun.value == "ERROR" {
+        if currentRun.value == " -error- " {
             fmt.Println(" -error- ")
             fmt.Println(currentRun.args[0].value)
         } else if currentRun.value == "return" {
@@ -268,7 +277,7 @@ func evalAll(treeList []tree) tree {
     return tree { value: "False" }
 }
 
-var lastCondition bool = true; // This checks if the last conditional was true or not, for the sake of the elf function (else if)
+var lastCondition bool = true; // This checks the last conditional for the elf and alf functions.
 func evaluator(subTree tree) tree {
     if val, ok := variables[subTree.value]; ok {    // This returns variable values.
         return evaluator(val)
@@ -333,7 +342,6 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
-
     
     case "--", "else":  // Otherwise conditional. "Else"
         if !lastCondition && len(subTree.args) >= 1 {
@@ -420,7 +428,7 @@ func evaluator(subTree tree) tree {
         fileName := atomizer( evaluator(subTree.args[0]) )
         if fileName.Type != "str" {
             return tree { 
-                value: "ERROR",
+                value: " -error- ",
                 args: []tree{ tree {
                     value:  "The file loading function takes only strings.",
                 } },
@@ -447,7 +455,7 @@ func evaluator(subTree tree) tree {
 
             if err != nil {
                 return tree { 
-                    value: "ERROR",
+                    value: " -error- ",
                     args: []tree{ tree { 
                         value:  "The file '" + fileName + "' could not be opened for writing.",
                     } },
@@ -458,7 +466,7 @@ func evaluator(subTree tree) tree {
 
         }
         return tree { 
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree {
                 value:  "The file saving function requires a file argument.",
             } },
@@ -470,7 +478,7 @@ func evaluator(subTree tree) tree {
 
         if err != nil {
             return tree { 
-                value: "ERROR",
+                value: " -error- ",
                 args: []tree{ tree { 
                     value:  "The webpage '" + domain + "' could not be opened.",
                 } },
@@ -658,7 +666,7 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { 
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree {
                 value:  "The 'append' function requires at least one argument.",
             } },
@@ -668,14 +676,14 @@ func evaluator(subTree tree) tree {
         if len(subTree.args) == 2 {
             list    := evaluator(subTree.args[0])
             index   := int(atomizer(evaluator(subTree.args[1])).num)
-            if index >= 0 {
-                return list.args[index % len(list.args)]
+            if index <= len(list.args) && index >= 0 {
+                return list.args[index]
             }
             if len(list.args) + index >= 0 {
                 return list.args[len(list.args)+index]
             }
             return tree {
-                value: "ERROR",
+                value: " -error- ",
                 args: []tree{ tree {
                     value: "Index out of range.",
                 } },
@@ -683,7 +691,7 @@ func evaluator(subTree tree) tree {
         }
 
         return tree {
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'index' function requires two arguments.",
             } },
@@ -697,7 +705,7 @@ func evaluator(subTree tree) tree {
         }
 
         return tree {
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'length' function requires one argument.", 
             } },
@@ -720,7 +728,7 @@ func evaluator(subTree tree) tree {
             return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
         }
         return tree { 
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree {
                 value:  "The 'subtract' function takes two or more num args.",
             } },
@@ -742,7 +750,7 @@ func evaluator(subTree tree) tree {
             return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
         }
         return tree { 
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree {
                 value:  "The 'divide' function takes two or more num args.",
             } },
@@ -757,7 +765,7 @@ func evaluator(subTree tree) tree {
         }
 
         return tree {   // Returns an error message for undefined names.
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'mod' function takes exactly two arguments.",
             } },
@@ -780,7 +788,7 @@ func evaluator(subTree tree) tree {
                 return tree { value: "off" }
             }
             return tree {   // Returns an error message for undefined names.
-                value: "ERROR",
+                value: " -error- ",
                 args: []tree{ tree {
                     value:  "The 'divisible' function only takes 'num' types.\n" +
                             "You've given '" + arg1.Type + "' and '" + arg2.Type + "'.",
@@ -789,7 +797,7 @@ func evaluator(subTree tree) tree {
         }
 
         return tree {   // Returns an error message for undefined names.
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'divisible' function takes exactly two arguments.",
             } },
@@ -813,15 +821,21 @@ func evaluator(subTree tree) tree {
 
     // Type conversions.
     case "bit", "num", "str":
-        return typeConverter(subTree.args[0], subTree.value)
+        return typeConverter(
+            evaluator(subTree.args[0]), 
+            subTree.value,
+        )
 
     case "typeConvert": // Convert any type to any other type using a string.
         if len(subTree.args) == 2 {
-            return typeConverter(subTree.args[0], atomizer(subTree.args[1]).str)
+            return typeConverter(
+                evaluator(subTree.args[0]),
+                atomizer(evaluator(subTree.args[1])).str,
+            )
         }
 
         return tree {   // Returns an error message for undefined names.
-            value: "ERROR",
+            value: " -error- ",
             args: []tree{ tree { 
                 value: "The 'typeConvert' function takes exactly two arguments.",
             } },
@@ -830,11 +844,10 @@ func evaluator(subTree tree) tree {
     // Kill DeviousYarn.
     case "die":
         os.Exit(0)
-
     }
 
     return tree {   // Returns an error message for undefined names.
-        value: "ERROR",
+        value: " -error- ",
         args: []tree{ tree {
             value: "The word '" + subTree.value +  "' means nothing.",
         } },
