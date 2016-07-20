@@ -69,7 +69,7 @@ func parseNext() tree {
             tokenList = tokenList[1:]   // Remove it.
             currentTree = tree {    // Make the tree into a 'set' function.
                 value: "set",
-                args: []tree{ currentTree, parseNext() },  // Which sets currentTree as the next function.
+                args: []tree{ currentTree, parseNext() },  // Set currentTree as the first arg.
             }
 
         }
@@ -135,14 +135,12 @@ func atomizer(preAtom tree) atom {
         }
 
     } else if _, err := strconv.ParseFloat(preAtom.value, 64); err == nil {
-        // If the value is a number.
-
+        // If the tree is a number.
         postAtom.Type   = "num"
         postAtom.num, _ = strconv.ParseFloat(preAtom.value, 64)
 
     } else if preAtom.value == "on" || preAtom.value == "off" { 
-        // If the value is a bit/bool.
-
+        // If the tree is a bit/bool.
         postAtom.Type   = "bit"
         if preAtom.value == "on" {
             postAtom.bit = true
@@ -151,17 +149,17 @@ func atomizer(preAtom tree) atom {
         }
 
     } else if preAtom.value == "list" {
-
+        // If the tree is a list.
         postAtom.Type = "list"
         postAtom.list = preAtom.args
 
     } else if preAtom.value == "file" {
-
+        // If the tree is a file.
         postAtom.Type = "file"
         postAtom.file = preAtom.args
 
     } else if preAtom.value == "website" {
-
+        // If the tree is a website.
         postAtom.Type       = "website"
         postAtom.website    = preAtom.args
 
@@ -173,10 +171,12 @@ func atomizer(preAtom tree) atom {
 }
 
 func typeConverter(oldTree tree, newType string) tree {
+    // Converts a tree into a tree of a different type.
     oldAtom := atomizer(oldTree)
     oldType := oldAtom.Type
 
     if oldType == newType {
+        // If the tree is already the right type.
         return oldTree
     }
 
@@ -397,9 +397,12 @@ func evaluator(subTree tree) tree {
             } else if printArg.Type == "website" {
                 if len(subTree.args) == 2 {
                     switch atomizer(evaluator(subTree.args[1])).str {
-                    case "domain"   : fmt.Println(atomizer(printArg.website[0]).str)
-                    case "header"   : fmt.Println(atomizer(printArg.website[1]).str)
-                    case "content"  : fmt.Println(atomizer(printArg.website[2]).str)
+                    case "domain"   : fmt.Println(atomizer(
+                                        printArg.website[0] ).str)
+                    case "header"   : fmt.Println(atomizer(
+                                        printArg.website[1] ).str)
+                    case "content"  : fmt.Println(atomizer(
+                                        printArg.website[2] ).str)
                     }
                 } else {
                     fmt.Println("domain:  " + atomizer(printArg.website[0]).str)
