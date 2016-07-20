@@ -862,16 +862,12 @@ func execute(input string) {
 
 func prompt() {
     reader := bufio.NewReader(os.Stdin)
-
     var input string
     for {
-
         fmt.Println(" -input- ")
         input, _ = reader.ReadString('\n')
-
         fmt.Println(" -output- ")
         execute( input )
-
     }
 }
 
