@@ -281,7 +281,7 @@ func evaluator(subTree tree) tree {
     switch subTree.value {
     case "set": // Sets variables.
 
-        if len(subTree.args) >= 2 {
+        if len(subTree.args) == 2 {
             variables[subTree.args[0].value] = evaluator(subTree.args[1])
             return variables[subTree.args[0].value]
         }
@@ -848,6 +848,19 @@ func evaluator(subTree tree) tree {
     case "bit", "num", "str":
 
         return typeConverter(subTree.args[0], subTree.value)
+
+    case "typeConvert":
+
+        if len(subTree.args) == 2 {
+            return typeConverter(subTree.args[0], subTree.args[1])
+        }
+
+        return tree {   // Returns an error message for undefined names.
+            value: "ERROR",
+            args: []tree{ tree { 
+                value: "The 'typeConvert' function takes exactly two arguments.",
+            } },
+        }
 
     // Kill DeviousYarn.
     case "die":
