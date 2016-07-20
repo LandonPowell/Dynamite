@@ -333,10 +333,9 @@ func evaluator(subTree tree) tree {
             lastCondition = true;
             return evalAll(subTree.args[1:])
 
-        } else {
-            lastCondition = false;
         }
 
+        lastCondition = false;
         return tree { value: "off" }
 
     case "-?", "elf":   // Otherwise if conditional. "Else if"
@@ -348,6 +347,7 @@ func evaluator(subTree tree) tree {
 
         }
 
+        lastCondition = false
         return tree { value: "off" }
 
     case "&?", "alf":   // Also if conditional.
@@ -359,6 +359,7 @@ func evaluator(subTree tree) tree {
 
         }
 
+        lastCondition = false
         return tree { value: "off" }
     
     case "--", "else":  // Otherwise conditional. "Else"
