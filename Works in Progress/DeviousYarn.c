@@ -3,11 +3,20 @@
 
 char** tokenizer(char plaintext []) {
     char* tokens [] = {};
-    char  word;
+    char* word;
 
     int index;
     for (index = 0; ! plaintext[index]; index++) {
-        // printf("%c \n", plaintext[index] ); 
+        if (plaintext[index] == "'") { 
+            index++;
+            while( plaintext[index] != "'") {
+                if (plaintext[index] == "\\") {
+                    word += plaintext[index + 1];
+                    index++;
+                }
+                index++;
+            }
+        }
     }
 
     char** tokenList = tokens;
