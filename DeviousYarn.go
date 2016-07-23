@@ -24,12 +24,24 @@ var tokenList = []string{}
 // It's basically just a wrapper for a big ass regex that'd be unreadable otherwise. 
 func lexer(plaintext string) []string {
     // Returns a list of tokens.
-    strings     := "'(\\\\\\\\|\\\\'|[^'])+'|\"[^\n]+"  // Regex for strings. http://www.xkcd.com/1638/
+    strings     := "'(\\\\\\\\|\\\\'|[^'])+'|\"[^\n]*"  // Regex for strings. http://www.xkcd.com/1638/
     brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
-    names       := "[^\\s\\[\\](){}:='\"]+"             // Regex for var names.
+    comments    := ";;[^\n]*"                           // Regex for comments.
+    names       := "[^\\s\\[\\](){}:;='\"]+"            // Regex for var names.
 
-    tokens  := regexp.MustCompile( strings+"|"+brackets+"|"+names )
-    return tokens.FindAllString(plaintext, -1)
+    tokenRegex  := regexp.MustCompile(
+        strings+"|"+brackets+"|"+comments+"|"+names,
+    )
+
+    tokens := tokenRegex.FindAllString(plaintext, -1)
+
+    for i, x := range(tokens) {
+        if len(x) >= 2 && x[:2] == ";;" {
+            tokens = append(tokens[:i], tokens[i+1:]...)
+        }
+    }
+
+    return tokens
 }
 
 type tree struct { // Tree of processes. It can also be a value.
