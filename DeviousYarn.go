@@ -25,12 +25,12 @@ var tokenList = []string{}
 func lexer(plaintext string) []string {
     // Returns a list of tokens.
     strings     := "'(\\\\\\\\|\\\\'|[^'])+'|\"[^\n]*"  // Regex for strings. http://www.xkcd.com/1638/
-    brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
     comments    := ";;[^\n]*"                           // Regex for comments.
+    brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
     names       := "[^\\s\\[\\](){}:;='\"]+"            // Regex for var names.
 
     tokenRegex  := regexp.MustCompile(
-        strings+"|"+brackets+"|"+comments+"|"+names,
+        strings+"|"+comments+"|"+brackets+"|"+names,
     )
 
     tokens := tokenRegex.FindAllString(plaintext, -1)
