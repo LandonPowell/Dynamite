@@ -112,7 +112,7 @@ type atom struct {
     str     string  // If the type is 'str' (a string) this is the value.
     num     float64 // 'num' (a number)
     bit     bool    // 'bit' (a 1 or 0, True or False)
-    fun     tree    // 'fun' (a function)
+    fun     function// 'fun'
     list    []tree  // 'list'
     file    []tree  // 'file'
     website []tree  // 'website'
@@ -263,8 +263,6 @@ func typeConverter(oldTree tree, newType string) tree {
     return tree { value: "off" }
 }
 
-var variables = make( map[string]tree )
-
 func loadFile(fileName string) tree {
     file, err := ioutil.ReadFile( fileName )
     if err != nil {
@@ -302,14 +300,44 @@ func evalAll(treeList []tree) tree {
             return evaluator(currentRun.args[0])
         }
     }
-    return tree { value: "False" }
+    return tree { value: "off" }
 }
+
+type function struct {
+    args    []string
+    process []tree
+}
+
+var variables = make( map[string]tree )
+var functions = make( map[string]function )
 
 var lastCondition bool = true; // This checks the last conditional for the elf and alf functions.
 func evaluator(subTree tree) tree {
-    if val, ok := variables[subTree.value]; ok {
+    if variable, ok := variables[subTree.value]; ok {
         // This returns variable values.
-        return evaluator(val)
+        return evaluator(variable)
+    } 
+
+    if funk, ok := functions[subTree.value]; ok {
+        // This evaluates function values.
+        oldVars := make( map[string]tree )
+
+        oldVars["args"] = variables["args"]
+        variables["args"] = tree { 
+            value:  "list",
+            args:   subTree.args,
+        }
+
+        for i, x := range(subTree.args) {
+            if i < len(funk.args) {
+                thisVar := funk.args[i]
+                oldVars[thisVar]    = variables[thisVar]
+                variables[thisVar]  = evaluator(x)
+            }
+        }
+        returnMe := evalAll(funk.process)
+    
+        return returnMe
     } 
 
     if atomizer(subTree).Type != "CAN NOT PARSE" {  
