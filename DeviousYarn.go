@@ -487,7 +487,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "off" }
 
-    case "cmd": // Disgusting useless command, yuck!
+    case "term", "cmd": // Disgusting useless command, yuck! (executes shell commands)
         var command = []string{}
         for _, x := range(subTree.args) {
             command = append(command, strings.Fields( atomizer(evaluator(x)).str )... )
