@@ -7,6 +7,7 @@ import (
     "bufio"
     "regexp"
     "strconv"
+    "os/exec"
     "strings"
     "net/http"
     "io/ioutil"
@@ -112,7 +113,6 @@ type atom struct {
     str     string  // If the type is 'str' (a string) this is the value.
     num     float64 // 'num' (a number)
     bit     bool    // 'bit' (a 1 or 0, True or False)
-    fun     function// 'fun'
     list    []tree  // 'list'
     file    []tree  // 'file'
     website []tree  // 'website'
@@ -323,7 +323,7 @@ func evaluator(subTree tree) tree {
         oldVars := make( map[string]tree )
 
         oldVars["args"] = variables["args"]
-        variables["args"] = tree { 
+        variables["args"] = tree {
             value:  "list",
             args:   subTree.args,
         }
@@ -335,7 +335,12 @@ func evaluator(subTree tree) tree {
                 variables[thisVar]  = evaluator(x)
             }
         }
+
         returnMe := evalAll(funk.process)
+    
+        for key, value := range(oldVars) {
+            variables[key] = value
+        }
     
         return returnMe
     } 
@@ -348,8 +353,13 @@ func evaluator(subTree tree) tree {
     switch subTree.value {
     case "set": // Sets variables.
         if len(subTree.args) == 2 {
-            variables[subTree.args[0].value] = evaluator(subTree.args[1])
-            return variables[subTree.args[0].value]
+            switch subTree.args[1].value {
+            case "fun", "function":
+                
+            default:
+                variables[subTree.args[0].value] = evaluator(subTree.args[1])
+                return variables[subTree.args[0].value]
+            }
         }
 
         return tree { value: "off" }
@@ -476,6 +486,20 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
+
+    case "cmd": // Disgusting useless command, yuck!
+        var command = []string{}
+        for _, x := range(subTree.args) {
+            command = append(command, strings.Fields( atomizer(evaluator(x)).str )... )
+        }
+        output, err := exec.Command(command[0], command[1:]...).Output()
+        if err != nil {
+            return tree { value: "off" }
+        }
+        return tree {
+            value: "\"" + string(output),
+            args: []tree{},
+        }
 
     case "in":  // Standard input.
         reader  := bufio.NewReader(os.Stdin)
