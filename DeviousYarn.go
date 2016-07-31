@@ -291,13 +291,14 @@ func loadFile(fileName string) tree {
 
 func evalAll(treeList []tree) tree {
     for _, x := range(treeList) {
+        if x.value == "return" {
+            return evaluator(x.args[0])
+        }
         currentRun := evaluator(x)
 
         if currentRun.value == " -error- " {
             fmt.Println(" -error- ")
             fmt.Println(currentRun.args[0].value)
-        } else if currentRun.value == "return" {
-            return evaluator(currentRun.args[0])
         }
     }
     return tree { value: "off" }
@@ -355,7 +356,18 @@ func evaluator(subTree tree) tree {
         if len(subTree.args) == 2 {
             switch subTree.args[1].value {
             case "fun", "function":
-                
+                var functionDef = function {
+                    args: []string{},
+                    process: subTree.args[1].args,
+                }
+
+                for _, x := range(subTree.args[0].args) {
+                    functionDef.args = append(functionDef.args, x.value)
+                }
+
+                functions[subTree.args[0].value] = functionDef
+                return tree { value: "on" }
+
             default:
                 variables[subTree.args[0].value] = evaluator(subTree.args[1])
                 return variables[subTree.args[0].value]
