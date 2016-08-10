@@ -1,4 +1,6 @@
 # DeviousYarn
+![Logo for DeviousYarn](http://getgle.ga/drive/threads/fileUploads/157.png)
+
 DeviousYarn - The String Manipulation Oriented Language.
 
 ## What is DeviousYarn?
