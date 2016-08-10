@@ -1,5 +1,5 @@
 # DeviousYarn
-![Logo for DeviousYarn](http://getgle.ga/drive/threads/fileUploads/157.png)
+![Logo for DeviousYarn](https://camo.githubusercontent.com/43e54eff3a914990c1c773629395c3a3bc643bae/687474703a2f2f676574676c652e67612f64726976652f746872656164732f66696c6555706c6f6164732f3135372e706e67)
 
 DeviousYarn - The String Manipulation Oriented Language.
 
