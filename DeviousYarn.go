@@ -101,7 +101,7 @@ func parser() []tree{
     }
     if len(tokenList) > 0 && contains(tokenList[0], "j)]}") {   
         // If the next token is a closing character,
-        tokenList = tokenList[1:] // remove it.
+        tokenList = tokenList[1:]   // Remove it.
     }
 
     return treeList // Return the tree list.
@@ -305,7 +305,7 @@ func evalAll(treeList []tree) tree {
 }
 
 type function struct {
-    args    []string
+    args    []tree
     process []tree
 }
 
@@ -331,7 +331,7 @@ func evaluator(subTree tree) tree {
 
         for i, x := range(subTree.args) {
             if i < len(funk.args) {
-                thisVar := funk.args[i]
+                thisVar := funk.args[i].value
                 oldVars[thisVar]    = variables[thisVar]
                 variables[thisVar]  = evaluator(x)
             }
@@ -354,24 +354,8 @@ func evaluator(subTree tree) tree {
     switch subTree.value {
     case "set": // Sets variables.
         if len(subTree.args) == 2 {
-            switch subTree.args[1].value {
-            case "fun", "function":
-                var functionDef = function {
-                    args: []string{},
-                    process: subTree.args[1].args,
-                }
-
-                for _, x := range(subTree.args[0].args) {
-                    functionDef.args = append(functionDef.args, x.value)
-                }
-
-                functions[subTree.args[0].value] = functionDef
-                return tree { value: "on" }
-
-            default:
-                variables[subTree.args[0].value] = evaluator(subTree.args[1])
-                return variables[subTree.args[0].value]
-            }
+            variables[subTree.args[0].value] = evaluator(subTree.args[1])
+            return variables[subTree.args[0].value]
         }
 
         return tree { value: "off" }
@@ -384,6 +368,15 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "off" }
 
+    case "defun":
+        if len(subTree.args) >= 2 {
+            functions[subTree.args[0].value] = function {
+                args:       subTree.args[0].args,
+                process:    subTree.args[1:],
+            }
+        }
+
+        return tree { value: "off" }
     case "run": // This is a function similair to an anonymous function.
         return evalAll(subTree.args)
 
