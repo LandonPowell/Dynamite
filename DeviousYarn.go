@@ -293,7 +293,7 @@ func evalAll(treeList []tree) tree {
         if x.value == "return" {
             return evaluator(x.args[0])
         }
-        currentRun := evaluator(x)
+        evaluator(x)
     }
     return tree { value: "off" }
 }
@@ -737,13 +737,15 @@ func evaluator(subTree tree) tree {
         if len(subTree.args) == 2 {
             list    := evaluator(subTree.args[0])
             index   := int(atomizer(evaluator(subTree.args[1])).num)
-            if index <= len(list.args) && index >= 0 {
+            if index < len(list.args) && index >= 0 {
                 return list.args[index]
             }
-            if len(list.args) + index >= 0 {
+            if len(list.args) + index >= 0 && index < 0 {
                 return list.args[len(list.args)+index]
             }
-            return raiseError("Index out of range. \n" + index + " of " + list)
+            return raiseError(
+                "Index out of range. \n" + 
+                strconv.Itoa(index) + " of " + subTree.args[0].value)
         }
 
         return raiseError("The 'index' function requires two arguments.")
