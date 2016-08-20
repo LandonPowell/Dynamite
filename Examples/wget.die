@@ -1,2 +1,7 @@
 p:"Enter a Domain: 
-out { get:in 'content' }
+site = get:in
+
+save:file {
+    replace(i[site 0] '/' '\') ;; Sanitize the file name.
+    i[site 2]
+}
