@@ -377,6 +377,7 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
+
     case "run": // This is a function similair to an anonymous function.
         return evalAll(subTree.args)
 
