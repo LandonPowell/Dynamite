@@ -78,6 +78,25 @@ func parseNext() tree {
             tokenList = tokenList[1:]   // Remove it.
             currentTree.args = parser() // Make a nest of it.
 
+            if len(tokenList) >= 2 && tokenList[0] == "=" { // If a "=" follows a closing symbol.
+                tokenList = tokenList[1:]   // Remove it.
+                currentTree = tree {    // Turn the current tree into a function definition. 
+                    value: "defun",
+                    args: []tree{ currentTree },
+                }
+
+                if tokenList[0] == "{" { // If it's a multi-line function definition.
+                    tokenList = tokenList[1:]   // Remove it.
+                    currentTree.args = append(
+                        currentTree.args,
+                        parser() ...,
+                    )
+
+                } else { // If it's a single-line function definition.
+                    currentTree.args = append(currentTree.args, parseNext())
+                }
+            }
+
         } else if tokenList[0] == ":" {
             // If the next token is a monogomy symbol.
             tokenList = tokenList[1:]   // Remove it.
@@ -100,7 +119,7 @@ func parseNext() tree {
 func parser() []tree{
     // The token list is looped through and trees are created.
     var treeList = []tree{} // Define the empty tree list.
-    
+
     for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") { 
         // So long as the current token isn't a closing character.
         treeList = append(treeList, parseNext())    // Append the next parsed tree to the tree list.
@@ -291,7 +310,14 @@ func loadFile(fileName string) tree {
 func evalAll(treeList []tree) tree {
     for _, x := range(treeList) {
         if x.value == "return" {
-            return evaluator(x.args[0])
+            if len(x.args) > 0 {
+                return evaluator(x.args[0])
+            } else { 
+                return raiseError(
+                    "You've attempted to call 'return' with no argument.\n" +
+                    "It isn't 'return arg', it's 'return:arg'.",
+                )
+            }
         }
         evaluator(x)
     }
@@ -543,6 +569,7 @@ func evaluator(subTree tree) tree {
         }
         return raiseError("The file saving function requires a file argument.")
 
+    // Network i/o and serving.
     case "get": // HTTP get request.
         domain := atomizer(evaluator(subTree.args[0])).str
         response, err := http.Get(domain)
@@ -889,6 +916,9 @@ func evaluator(subTree tree) tree {
 
         return raiseError("The 'typeConvert' function takes exactly two arguments.")
 
+    case "return": // This isn't actually a thing, I just use it to catch bad calls to it.
+        return raiseError("You can't call return outside of a function's root.")
+
     // Kill DeviousYarn.
     case "die":
         os.Exit(0)
@@ -923,7 +953,7 @@ func prompt() {
 func runFile(fileName string) {
     file, err := ioutil.ReadFile( fileName )
     if err != nil {
-        fmt.Println("The file '" + fileName + "' could not be opened.")
+        raiseError("The file '" + fileName + "' could not be opened.")
     } else {
         execute( string( file ) )
     }
