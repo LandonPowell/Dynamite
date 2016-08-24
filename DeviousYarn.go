@@ -31,7 +31,7 @@ var tokenList = []string{}
 // It's basically just a wrapper for a big ass regex that'd be unreadable otherwise. 
 func lexer(plaintext string) []string {
     // Returns a list of tokens.
-    strings     := "'(\\\\\\\\|\\\\'|[^'])+'|\"[^\n]*"  // Regex for strings. http://www.xkcd.com/1638/
+    strings     := "'(\\\\\\\\|\\\\'|[^'])*'|\"[^\n]*"  // Regex for strings. http://www.xkcd.com/1638/
     comments    := ";;[^\n]*"                           // Regex for comments.
     brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
     names       := "[^\\s\\[\\](){}:;='\"]+"            // Regex for var names.
@@ -616,7 +616,7 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "on" }
 
-    // Simple comparison operators.
+    // Simple comparison operators and comparison operations.
     case "equals", "is":    // Check for equality.
         if len(subTree.args) > 0 {
             firstTree := evaluator(subTree.args[0])
@@ -694,6 +694,23 @@ func evaluator(subTree tree) tree {
             return tree { value: "on" }
         }
         return tree { value: "off" }
+
+    case "any": // Return the first thing that isn't blank or 0. Most languages just use 'or' for this, but that's sloppy and confusing.
+        for _, x := range(subTree.args) {
+            x = evaluator(x)
+            currentItem := atomizer(x)
+            if currentItem.Type == "str" {
+                if strings.TrimSpace(currentItem.str) != "" {
+                    return x
+                }
+            } else if currentItem.Type == "num" {
+                if currentItem.num != 0 {
+                    return x
+                }
+            } else {
+                raiseError("Can't use a " + currentItem.Type + " with the 'any' function.")
+            }
+        }
 
     // Loops.
     case "each", "e":   // For-each loop.
@@ -869,7 +886,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: newString, args: []tree{} }
 
-    case "replace":
+    case "replace": // Replace things in a string with a key-value pair, or mutiple key-value pairs.
         if len(subTree.args) % 2 == 1 {
             originalString := atomizer(evaluator(subTree.args[0]))
 
@@ -916,7 +933,8 @@ func evaluator(subTree tree) tree {
 
         return raiseError("The 'typeConvert' function takes exactly two arguments.")
 
-    case "return": // This isn't actually a thing, I just use it to catch bad calls to it.
+    // Things you shouldn't actually use, but exist because sometimes you have to.
+    case "return": // This isn't actually a thing, I just use it to catch bad returns.
         return raiseError("You can't call return outside of a function's root.")
 
     // Kill DeviousYarn.
