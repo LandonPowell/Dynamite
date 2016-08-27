@@ -425,6 +425,8 @@ func evaluator(subTree tree) tree {
             process:    subTree.args[1:],
         }
 
+        return tree { value: "on" }
+
     case "run": // This is a function similair to an anonymous function.
         return evalAll(subTree.args)
 
