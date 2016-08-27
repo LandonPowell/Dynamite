@@ -42,7 +42,7 @@ func lexer(plaintext string) []string {
 
     tokens := tokenRegex.FindAllString(plaintext, -1)
 
-    for i, x := range(tokens) {
+    for i, x := range tokens {
         if len(x) >= 2 && x[:2] == ";;" {
             tokens = append(tokens[:i], tokens[i+1:]...)
         }
@@ -73,7 +73,7 @@ func parseNext() tree {
 
     if len(tokenList) > 0 { // Everybody taking the chance... Safety dance.
 
-        if contains(tokenList[0], "{[(f") { 
+        if contains(tokenList[0], "{[(") { 
             // If the next token is an opening bracket.
             tokenList = tokenList[1:]   // Remove it.
             currentTree.args = parser() // Make a nest of it.
@@ -120,11 +120,11 @@ func parser() []tree{
     // The token list is looped through and trees are created.
     var treeList = []tree{} // Define the empty tree list.
 
-    for len(tokenList) > 0 && !contains(tokenList[0], "j)]}") { 
+    for len(tokenList) > 0 && !contains(tokenList[0], ")]}") { 
         // So long as the current token isn't a closing character.
         treeList = append(treeList, parseNext())    // Append the next parsed tree to the tree list.
     }
-    if len(tokenList) > 0 && contains(tokenList[0], "j)]}") {   
+    if len(tokenList) > 0 && contains(tokenList[0], ")]}") {   
         // If the next token is a closing character,
         tokenList = tokenList[1:]   // Remove it.
     }
@@ -167,7 +167,7 @@ func atomizer(preAtom tree) atom {
                 "\\": "\\",
             }
 
-            for x, y := range(replaceMap) {
+            for x, y := range replaceMap {
                 postAtom.str = strings.Replace(postAtom.str, "\\" + x, y, -1)
             }
         }
@@ -269,7 +269,7 @@ func typeConverter(oldTree tree, newType string) tree {
             return tree { value: "on" }
         case "list":
             newArgs := []tree{}
-            for _, x := range(oldAtom.str) {
+            for _, x := range oldAtom.str {
                 newArgs = append(newArgs, tree {
                     value: "\"" + string(x),
                     args: []tree{},
@@ -301,7 +301,7 @@ func loadFile(fileName string) tree {
     } else {
         fileArgs := []tree{ tree { value: "\"" + fileName } }
 
-        for _, x := range(strings.Split(string(file), "\n")) {
+        for _, x := range strings.Split(string(file), "\n") {
             fileArgs = append(fileArgs, tree { value: "\"" + x })
         }
 
@@ -318,7 +318,7 @@ func evalTrees(preTree []tree) []tree { // This is used for the 'tree' datatype,
     // and compiles them recursively into a 'lazyTree' type.
     compiledTree := []tree{}
 
-    for _, x := range(preTree) {
+    for _, x := range preTree {
 
         if atomizer(x).Type == "CAN NOT PARSE" {
             compiledTree = append(compiledTree, evaluator(x))
@@ -334,7 +334,7 @@ func evalTrees(preTree []tree) []tree { // This is used for the 'tree' datatype,
 }
 
 func evalAll(treeList []tree) tree {
-    for _, x := range(treeList) {
+    for _, x := range treeList {
         if x.value == "return" {
             if len(x.args) > 0 {
                 return evaluator(x.args[0])
@@ -376,7 +376,7 @@ func evaluator(subTree tree) tree {
             args:   subTree.args,
         }
 
-        for i, x := range(subTree.args) {
+        for i, x := range subTree.args {
             if i < len(funk.args) {
                 thisVar := funk.args[i].value
                 oldVars[thisVar]    = variables[thisVar]
@@ -386,7 +386,7 @@ func evaluator(subTree tree) tree {
 
         returnMe := evalAll(funk.process)
     
-        for key, value := range(oldVars) {
+        for key, value := range oldVars {
             variables[key] = value
         }
     
@@ -400,49 +400,54 @@ func evaluator(subTree tree) tree {
 
     switch subTree.value {
     case "set": // Sets variables.
-        if len(subTree.args) == 2 {
-            variables[subTree.args[0].value] = evaluator(subTree.args[1])
-            return variables[subTree.args[0].value]
+        if len(subTree.args) != 2 {
+            return raiseError("You must set variables using a single value and a name.")
         }
 
-        return tree { value: "off" }
+        variables[subTree.args[0].value] = evaluator(subTree.args[1])
+        return variables[subTree.args[0].value]
 
     case "lazySet": // Sets a tree to a variable without evaluating it.
-        if len(subTree.args) == 2 {
-            variables[subTree.args[0].value] = subTree.args[1]
-            return subTree.args[1]
+        if len(subTree.args) != 2 {
+            return raiseError("You must set variables using a single value and a name.")
         }
 
-        return tree { value: "off" }
+        variables[subTree.args[0].value] = subTree.args[1]
+        return subTree.args[1]
 
     case "defun":
-        if len(subTree.args) >= 2 {
-            functions[subTree.args[0].value] = function {
-                args:       subTree.args[0].args,
-                process:    subTree.args[1:],
-            }
+        if len(subTree.args) < 2 {
+            return raiseError("You can't set a function without both a name and a value.")
         }
 
-        return tree { value: "off" }
+        functions[subTree.args[0].value] = function {
+            args:       subTree.args[0].args,
+            process:    subTree.args[1:],
+        }
 
     case "run": // This is a function similair to an anonymous function.
         return evalAll(subTree.args)
 
     // The following few values are in charge of conditionals.
     case "?", "if": // Simple conditional. "If"
-        if len(subTree.args) >= 2 && 
-            typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
+        if len(subTree.args) < 2 {
+            return raiseError("The 'if' conditional function requires at least two arguments.")
+        }
 
+        if typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
             lastCondition = true
             return evalAll(subTree.args[1:])
-
         }
 
         lastCondition = false;
         return tree { value: "off" }
 
     case "-?", "elf":   // Otherwise if conditional. "Else if"
-        if !lastCondition && len(subTree.args) >= 2 && 
+        if len(subTree.args) < 2 {
+            return raiseError("The 'elf' conditional function requires at least two arguments.")
+        }
+
+        if !lastCondition && 
             typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
 
             lastCondition = true
@@ -454,7 +459,11 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "&?", "alf":   // Also if conditional.
-        if lastCondition && len(subTree.args) >= 2 && 
+        if len(subTree.args) < 2 {
+            return raiseError("The 'alf' conditional function requires at least two arguments.")
+        }
+
+        if lastCondition && 
             typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
 
             lastCondition = true
@@ -466,14 +475,22 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
     
     case "--", "else":  // Otherwise conditional. "Else"
-        if !lastCondition && len(subTree.args) >= 1 {
+        if len(subTree.args) < 1 {
+            return raiseError("The 'else' conditional function requires at least one argument.")
+        }
+
+        if !lastCondition {
             return evalAll(subTree.args)
         }
 
         return tree { value: "off" }
 
     case "&&", "also":  // Also conditional.
-        if lastCondition && len(subTree.args) >= 1 {
+        if len(subTree.args) < 1 {
+            return raiseError("The 'also' conditional function requires at least one argument.")
+        }
+
+        if lastCondition {
             return evalAll(subTree.args)
         }
 
@@ -481,51 +498,51 @@ func evaluator(subTree tree) tree {
 
     // The following are in charge of simple I/O.
     case "o", "out":    // This is a formated output, or 'println' minus templating.
-        if len(subTree.args) > 0 {
-            firstArg := evaluator(subTree.args[0])
-            printArg := atomizer(firstArg)
-
-            if printArg.Type == "file" {
-                if len(subTree.args) == 2 {
-                    fmt.Println(atomizer(
-                        printArg.file[int(atomizer(
-                            evaluator(subTree.args[1]),
-                        ).num)],
-                    ).str)
-                } else {
-                    fmt.Println("fileName: " + atomizer(printArg.file[0]).str)
-                    for i, x := range(printArg.file[1:]) {
-                        fmt.Println(strconv.Itoa(i+1) + "│" + atomizer(x).str)
-                    }
-                }
-            } else if printArg.Type == "website" {
-                if len(subTree.args) == 2 {
-                    switch atomizer(evaluator(subTree.args[1])).str {
-                    case "domain"   : fmt.Println(atomizer(
-                                        printArg.website[0] ).str)
-                    case "header"   : fmt.Println(atomizer(
-                                        printArg.website[1] ).str)
-                    case "content"  : fmt.Println(atomizer(
-                                        printArg.website[2] ).str)
-                    }
-                } else {
-                    fmt.Println("domain:  " + atomizer(printArg.website[0]).str)
-                    fmt.Println(" -header-\n" + atomizer(printArg.website[1]).str )
-                    fmt.Println(" -content-\n" + atomizer(printArg.website[2]).str )
-                }
-            } else {
-                firstArg = typeConverter(firstArg, "str")
-                fmt.Println(atomizer(firstArg).str)
-            }
-
-            return firstArg
+        if len(subTree.args) < 1 {
+            fmt.Println()
+            return tree { value: "off" }
         }
 
-        fmt.Println()
-        return tree { value: "off" }
+        firstArg := evaluator(subTree.args[0])
+        printArg := atomizer(firstArg)
+
+        if printArg.Type == "file" {
+            if len(subTree.args) == 2 {
+                fmt.Println(atomizer(
+                    printArg.file[int(atomizer(
+                        evaluator(subTree.args[1]),
+                    ).num)],
+                ).str)
+            } else {
+                fmt.Println("fileName: " + atomizer(printArg.file[0]).str)
+                for i, x := range printArg.file[1:] {
+                    fmt.Println(strconv.Itoa(i+1) + "│" + atomizer(x).str)
+                }
+            }
+        } else if printArg.Type == "website" {
+            if len(subTree.args) == 2 {
+                switch atomizer(evaluator(subTree.args[1])).str {
+                case "domain"   : fmt.Println(atomizer(
+                                    printArg.website[0] ).str)
+                case "header"   : fmt.Println(atomizer(
+                                    printArg.website[1] ).str)
+                case "content"  : fmt.Println(atomizer(
+                                    printArg.website[2] ).str)
+                }
+            } else {
+                fmt.Println("domain:  " + atomizer(printArg.website[0]).str)
+                fmt.Println(" -header-\n" + atomizer(printArg.website[1]).str )
+                fmt.Println(" -content-\n" + atomizer(printArg.website[2]).str )
+            }
+        } else {
+            firstArg = typeConverter(firstArg, "str")
+            fmt.Println(atomizer(firstArg).str)
+        }
+
+        return firstArg
 
     case "print", "p":  // Print without a linebreak at the end.
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             x = typeConverter(evaluator(x), "str")
             fmt.Print(atomizer(x).str)
         }
@@ -533,16 +550,16 @@ func evaluator(subTree tree) tree {
         return tree { value: "on" }
 
     case "rawOut":  // This outputs the plaintext of a tree.
-        if len(subTree.args) > 0 {
-            fmt.Println(evaluator(subTree.args[0]))
-            return subTree.args[0]
+        if len(subTree.args) < 1 {
+            return raiseError("The 'rawOut' function requires at least one argument.")
         }
 
-        return tree { value: "off" }
+        fmt.Println(evaluator(subTree.args[0]))
+        return subTree.args[0]
 
-    case "term", "cmd": // Disgusting useless command, yuck! (executes shell commands)
+    case "term", "cmd": // Disgusting useless command, yuck! (executes shell commands) (don't use it, you idiot)
         var command = []string{}
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             command = append(command, strings.Fields( atomizer(evaluator(x)).str )... )
         }
         output, err := exec.Command(command[0], command[1:]...).Output()
@@ -565,38 +582,45 @@ func evaluator(subTree tree) tree {
     // File i/o and editing.
     case "loadFile", "open":    // Open a file.
         fileName := atomizer( evaluator(subTree.args[0]) )
+
         if fileName.Type != "str" {
             return raiseError("The file loading function takes only strings.")
         }
+
         return loadFile(
             atomizer( evaluator(subTree.args[0]) ).str,
         )
 
-    case "saveFile", "save":    // Save a file.
-        fileArg := evaluator(subTree.args[0])
-        if len(subTree.args) > 0 && fileArg.value == "file" {
-            fileName := atomizer( evaluator(fileArg.args[0]) ).str
-
-            fileContent := []string{}
-
-            for _, x := range(subTree.args[0].args[1:]) {
-                fileContent = append(fileContent, atomizer(evaluator(x)).str)
-            }
-
-            err := ioutil.WriteFile(fileName, 
-                []byte(strings.Join(fileContent, "\n")), 
-                0644)
-
-            if err != nil {
-                return raiseError("The file '" + fileName + "' could not be opened for writing.")
-            }
-
-            return subTree.args[0]
-
+    case "saveFile", "save":    // Save a file. Heavily commented because it's kind of confusing.
+        if len(subTree.args) < 1 { // Safety check.
+            return raiseError("The file saving function requires at least one argument.")
         }
-        return raiseError("The file saving function requires a file argument.")
 
-    // Network i/o and serving.
+        fileArg := evaluator(subTree.args[0]) // Evaluate the file. 
+
+        if fileArg.value != "file" { // If there isn't an argument of 'file' type,
+            return raiseError("The file saving function requires a 'file' type argument.")  // raise an error.
+        }
+
+        fileName := atomizer( evaluator(fileArg.args[0]) ).str // Evaluate the first argument of the 'file' arg, aka the name of the file.
+
+        fileContent := []string{} // Define an empty array of strings. 
+
+        for _, x := range subTree.args[0].args[1:] { // Loop through all the lines in the file,
+            fileContent = append(fileContent, atomizer(evaluator(x)).str) // and append them to the file content after evaluating them to strings.
+        }
+
+        err := ioutil.WriteFile(fileName,
+            []byte(strings.Join(fileContent, "\n")),  // Join all the lines in the file.
+            0644) // Arbitrary obscure number that no one understands.
+
+        if err != nil { // If there was an error, aka if the error isn't not an error. Fucking '!= nil'? What in gods name is wrong with langdevs.
+            return raiseError("The file '" + fileName + "' could not be opened for writing.")
+        }
+
+        return subTree.args[0]  // Return the file argument.
+
+    // Network i/o. Doesn't include a web framework.
     case "get": // HTTP get request.
         domain := atomizer(evaluator(subTree.args[0])).str
         response, err := http.Get(domain)
@@ -628,7 +652,7 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "or":  // Boolean 'or'.
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             if evaluator(x).value == "on" {
                 return tree { value: "on" }
             }
@@ -636,7 +660,7 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "and": // Boolean 'and'.
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             if evaluator(x).value == "off" {
                 return tree { value: "off" }
             }
@@ -647,7 +671,7 @@ func evaluator(subTree tree) tree {
     case "equals", "is":    // Check for equality.
         if len(subTree.args) > 0 {
             firstTree := evaluator(subTree.args[0])
-            for _, x := range(subTree.args[1:]) {
+            for _, x := range subTree.args[1:] {
                 x = evaluator(x)
     
                 if len(x.args) != len(firstTree.args) ||
@@ -658,7 +682,7 @@ func evaluator(subTree tree) tree {
     
                 }
     
-                for i, y := range(x.args) {
+                for i, y := range x.args {
                     if y.value != firstTree.args[i].value {
                         return tree { value: "off" }
                     }
@@ -674,7 +698,7 @@ func evaluator(subTree tree) tree {
             firstAtom := atomizer(evaluator(subTree.args[0]))
             var secondAtom atom
 
-            for _, x := range(subTree.args[1:]) {
+            for _, x := range subTree.args[1:] {
                 secondAtom = atomizer(evaluator(x))
                 switch firstAtom.Type {
                 case "num":
@@ -701,7 +725,7 @@ func evaluator(subTree tree) tree {
             firstAtom := atomizer(evaluator(subTree.args[0]))
             var secondAtom atom
 
-            for _, x := range(subTree.args[1:]) {
+            for _, x := range subTree.args[1:] {
                 secondAtom = atomizer(evaluator(x))
                 switch firstAtom.Type {
                 case "num":
@@ -723,7 +747,7 @@ func evaluator(subTree tree) tree {
         return tree { value: "off" }
 
     case "any": // Return the first thing that isn't blank or 0.
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             x = evaluator(x)
             currentItem := atomizer(x)
             if currentItem.Type == "str" {
@@ -741,14 +765,15 @@ func evaluator(subTree tree) tree {
 
     // Loops.
     case "each", "e":   // For-each loop.
-        if len(subTree.args) >= 3 {
-            for _, x := range(evaluator(subTree.args[1]).args) {
-                variables[subTree.args[0].value] = x
-                evalAll(subTree.args[2:])
-            }
-            return tree { value: "on" }
+        if len(subTree.args) < 3 {
+            return raiseError("The 'each' function requires at least 3 arguments.")
         }
-        return tree { value: "off" }
+
+        for _, x := range evaluator(subTree.args[1]).args {
+            variables[subTree.args[0].value] = x
+            evalAll(subTree.args[2:])
+        }
+        return tree { value: "on" }
 
     case "while", "w":  // While-true loop.
         for evaluator(subTree.args[0]).value == "on" {
@@ -758,7 +783,6 @@ func evaluator(subTree tree) tree {
 
     // List related functions and list generators.
     case "range":   // Range list generator.
-        
         var generatedList = tree { 
             value: "list",
             args: []tree{},
@@ -782,58 +806,59 @@ func evaluator(subTree tree) tree {
 
         for x := start; x <= end; x += iterate {
             generatedList.args = append(generatedList.args, 
-                tree { 
-                    value: strconv.Itoa(x), 
-                    args: []tree{},
-                })
+                tree { value: strconv.Itoa(x) })
         }
 
         return generatedList
 
     case "append", "a": // Append to a list.
-        if len(subTree.args) > 0 {
-            list := evaluator(subTree.args[0]).args
-            for _, x := range(subTree.args[1:]) {
-                list = append(list, evaluator(x))
-            }
-            return tree {
-                value: "list", 
-                args: list,
-            }
+        if len(subTree.args) < 1 {
+            return raiseError( "The 'append' function requires at least one argument.")
         }
 
-        return raiseError( "The 'append' function requires at least one argument.")
+        list := evaluator(subTree.args[0]).args
+
+        for _, x := range subTree.args[1:] {
+            list = append(list, evaluator(x))
+        }
+
+        return tree {
+            value: "list", 
+            args: list,
+        }
 
     case "index", "i":  // Element at an index.
-        if len(subTree.args) == 2 {
-            list    := evaluator(subTree.args[0])
-            index   := int(atomizer(evaluator(subTree.args[1])).num)
-            if index < len(list.args) && index >= 0 {
-                return list.args[index]
-            }
-            if len(list.args) + index >= 0 && index < 0 {
-                return list.args[len(list.args)+index]
-            }
-            return raiseError(
-                "Index out of range. \n" + 
-                strconv.Itoa(index) + " of " + subTree.args[0].value)
+        if len(subTree.args) != 2 {
+            return raiseError("The 'index' function requires two arguments.")
         }
 
-        return raiseError("The 'index' function requires two arguments.")
+        list    := evaluator(subTree.args[0])
+        index   := int(atomizer(evaluator(subTree.args[1])).num)
+
+        if index < len(list.args) && index >= 0 {
+            return list.args[index]
+        }
+
+        if len(list.args) + index >= 0 && index < 0 {
+            return list.args[len(list.args)+index]
+        }
+
+        return raiseError(
+            "Index out of range. \n" + 
+            strconv.Itoa(index) + " of " + subTree.args[0].value)
 
     case "length":  // Length of a list.
-        if len(subTree.args) == 1 {
-            return tree {
-                value: strconv.Itoa(len(evaluator(subTree.args[0]).args)),
-            }
+        if len(subTree.args) != 1 {
+            return raiseError("The 'length' function requires one argument.")
         }
-
-        return raiseError("The 'length' function requires one argument.")
+        return tree {
+            value: strconv.Itoa(len(evaluator(subTree.args[0]).args)),
+        }
 
     // Mathmatical operators, such as adding numbers, checking for divisibility, etc.
     case "sum": // Sum all numerical args together.
         number := 0.0
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             number += atomizer(evaluator(x)).num
         }
         return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
@@ -841,7 +866,7 @@ func evaluator(subTree tree) tree {
     case "subtract":    // Starting with the leftmost number, subtract all numbers after it.
         if len(subTree.args) >= 2 {
             number := atomizer(evaluator(subTree.args[0])).num
-            for _, x := range(subTree.args[1:]) {
+            for _, x := range subTree.args[1:] {
                 number -= atomizer(evaluator(x)).num
             }
             return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
@@ -850,7 +875,7 @@ func evaluator(subTree tree) tree {
 
     case "multiply":    // Multiply all numerical args together.
         number := 1.0
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             number *= atomizer(evaluator(x)).num
         }
         return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
@@ -858,7 +883,7 @@ func evaluator(subTree tree) tree {
     case "divide":  // Starting with the leftmost number, divide it by all following numbers.
         if len(subTree.args) >= 2 {
             number := atomizer(evaluator(subTree.args[0])).num
-            for _, x := range(subTree.args[1:]) {
+            for _, x := range subTree.args[1:] {
                 number /= atomizer(evaluator(x)).num
             }
             return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
@@ -902,7 +927,7 @@ func evaluator(subTree tree) tree {
     case "concat":  // Concatonate strings.
         newString := "\""
 
-        for _, x := range(subTree.args) {
+        for _, x := range subTree.args {
             subString := atomizer(evaluator(x))
             newString += subString.str
 
@@ -914,34 +939,63 @@ func evaluator(subTree tree) tree {
         return tree { value: newString, args: []tree{} }
 
     case "replace": // Replace things in a string with a key-value pair, or mutiple key-value pairs.
-        if len(subTree.args) % 2 == 1 {
-            originalString := atomizer(evaluator(subTree.args[0]))
-
-            if originalString.Type != "str" {
-                return raiseError(
-                    "You can only use 'replace' on strings. You used a " + 
-                    originalString.Type + ".")
-            }
-
-            for x := 1; x < len(subTree.args); x += 2 {
-                previous    := atomizer(evaluator(subTree.args[x]))
-                replacement := atomizer(evaluator(subTree.args[x + 1]))
-
-                originalString.str = strings.Replace(
-                    originalString.str, 
-                    previous.str, 
-                    replacement.str, 
-                -1)
-
-                if previous.Type != "str" || replacement.Type != "str" {
-                    return raiseError("You can't replace a string using a non string key or value.")
-                }
-            }
-
-            return tree { value: "\"" + originalString.str }
+        if len(subTree.args) % 2 != 1 {
+            return raiseError("The 'replace' function requires an odd number of args.")
         }
 
-        return raiseError("The 'replace' function requires an odd number of args.")
+        originalString := atomizer(evaluator(subTree.args[0]))
+
+        if originalString.Type != "str" {
+            return raiseError(
+                "You can only use 'replace' on strings. You used a " + 
+                originalString.Type + ".")
+        }
+
+        for x := 1; x < len(subTree.args); x += 2 {
+            previous    := atomizer(evaluator(subTree.args[x]))
+            replacement := atomizer(evaluator(subTree.args[x + 1]))
+
+            originalString.str = strings.Replace(
+                originalString.str, 
+                previous.str, 
+                replacement.str, 
+            -1)
+
+            if previous.Type != "str" || replacement.Type != "str" {
+                return raiseError("You can't replace a string using a non string key or value.")
+            }
+        }
+
+        return tree { value: "\"" + originalString.str }
+
+
+    case "split": // To-Do
+        if len(subTree.args) != 2 {
+            return raiseError("The 'split' function requires two args.")
+        }
+
+        preString := atomizer(evaluator(subTree.args[0]))
+
+        if preString.Type != "str" {
+            return raiseError("The 'split' function only takes strings.")
+        }
+
+        var newList = tree {
+            value: "list",
+            args: []tree{},
+        }
+
+        for _, x := range subTree.args[1:] {
+            currentSplit := atomizer(evaluator(x))
+
+            if currentSplit.Type != "str" {
+                return raiseError("The 'split' function only takes strings.")
+            }
+
+            newList.args = append(newList.args, )
+        }
+
+        return newList
 
     // Tree manipulation functions and tree management. 
     case "tree": // Evaluate the tree and return a 'lazyTree'.
@@ -955,7 +1009,7 @@ func evaluator(subTree tree) tree {
         if len(subTree.args) == 2 {
             var listOfTrees = []tree{}
 
-            for _, x := range(evaluator(subTree.args[0]).args) {
+            for _, x := range evaluator(subTree.args[0]).args {
                 if x.value == subTree.args[1].value {
                     listOfTrees = append(listOfTrees, evaluator(x).args ...)
                 }
