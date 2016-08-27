@@ -32,9 +32,9 @@ var tokenList = []string{}
 func lexer(plaintext string) []string {
     // Returns a list of tokens.
     strings     := "'(\\\\\\\\|\\\\'|[^'])*'|\"[^\n]*"  // Regex for strings. http://www.xkcd.com/1638/
-    comments    := ";;[^\n]*"                           // Regex for comments.
+    comments    := "(#|;;)[^\n]*"                       // Regex for comments.
     brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
-    names       := "[^\\s\\[\\](){}:;='\"]+"            // Regex for var names.
+    names       := "[^\\s\\[\\](){}:;#='\"]+"           // Regex for var names.
 
     tokenRegex  := regexp.MustCompile(
         strings+"|"+comments+"|"+brackets+"|"+names,
@@ -141,6 +141,7 @@ type atom struct {
     list    []tree  // 'list'
     file    []tree  // 'file'
     website []tree  // 'website'
+    tree    tree    // 'tree'
 }
 
 func atomizer(preAtom tree) atom {
@@ -199,6 +200,11 @@ func atomizer(preAtom tree) atom {
         // If the tree is a website.
         postAtom.Type       = "website"
         postAtom.website    = preAtom.args
+
+    } else if preAtom.value == "lazyTree" {
+        // If the tree is a lazy tree. The 'tree' function just generates this.
+        postAtom.Type = "tree"
+        postAtom.tree = preAtom
 
     } else { 
         postAtom.Type = "CAN NOT PARSE" 
@@ -307,6 +313,26 @@ func loadFile(fileName string) tree {
     }
 }
 
+func evalTrees(preTree []tree) []tree { // This is used for the 'tree' datatype, not for AST evaluations. See 'evaluator' function.
+    // Effectively, this function takes a list of 'tree' datatypes, 
+    // and compiles them recursively into a 'lazyTree' type.
+    compiledTree := []tree{}
+
+    for _, x := range(preTree) {
+
+        if atomizer(x).Type == "CAN NOT PARSE" {
+            compiledTree = append(compiledTree, evaluator(x))
+        } else {
+            compiledTree = append(compiledTree, tree {
+                value: x.value,
+                args: evalTrees(x.args),
+            })
+        }
+    }
+
+    return compiledTree
+}
+
 func evalAll(treeList []tree) tree {
     for _, x := range(treeList) {
         if x.value == "return" {
@@ -334,12 +360,13 @@ var functions = make( map[string]function )
 
 var lastCondition bool = true; // This checks the last conditional for the elf and alf functions.
 func evaluator(subTree tree) tree {
-    if variable, ok := variables[subTree.value]; ok {
+
+    if variable, ok := variables[subTree.value]; ok { // Variable definition check.
         // This returns variable values.
         return evaluator(variable)
     } 
 
-    if funk, ok := functions[subTree.value]; ok {
+    if funk, ok := functions[subTree.value]; ok { // Function definition check.
         // This evaluates function values.
         oldVars := make( map[string]tree )
 
@@ -695,7 +722,7 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    case "any": // Return the first thing that isn't blank or 0. Most languages just use 'or' for this, but that's sloppy and confusing.
+    case "any": // Return the first thing that isn't blank or 0.
         for _, x := range(subTree.args) {
             x = evaluator(x)
             currentItem := atomizer(x)
@@ -915,6 +942,32 @@ func evaluator(subTree tree) tree {
         }
 
         return raiseError("The 'replace' function requires an odd number of args.")
+
+    // Tree manipulation functions and tree management. 
+    case "tree": // Evaluate the tree and return a 'lazyTree'.
+        return tree { 
+            value: "lazyTree",
+            args: evalTrees(subTree.args),
+        }
+
+    case "of": // Get list containing all values assigned to a key. Repeated key is the same as one key with more values.
+
+        if len(subTree.args) == 2 {
+            var listOfTrees = []tree{}
+
+            for _, x := range(evaluator(subTree.args[0]).args) {
+                if x.value == subTree.args[1].value {
+                    listOfTrees = append(listOfTrees, evaluator(x).args ...)
+                }
+            }
+
+            return tree {
+                value: "list",
+                args: listOfTrees,
+            }
+        }
+
+        return raiseError("The 'of' function takes exactly two arguments.")
 
     // Type conversions.
     case "bit", "num", "str":
