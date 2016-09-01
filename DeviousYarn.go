@@ -296,20 +296,20 @@ func typeConverter(oldTree tree, newType string) tree {
 
 func loadFile(fileName string) tree {
     file, err := ioutil.ReadFile( fileName )
+
     if err != nil {
         return raiseError("The file '" + fileName + "' could not be loaded.")
-    } else {
-        fileArgs := []tree{ tree { value: "\"" + fileName } }
+    }
 
-        for _, x := range strings.Split(string(file), "\n") {
-            fileArgs = append(fileArgs, tree { value: "\"" + x })
-        }
+    fileArgs := []tree{ tree { value: "\"" + fileName } }
 
-        return tree {
-            value:  "file", 
-            args:   fileArgs,
-        }
+    for _, x := range strings.Split(string(file), "\n") {
+        fileArgs = append(fileArgs, tree { value: "\"" + x })
+    }
 
+    return tree {
+        value:  "file", 
+        args:   fileArgs,
     }
 }
 
