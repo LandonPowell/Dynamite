@@ -552,8 +552,8 @@ func evaluator(subTree tree) tree {
         return tree { value: "on" }
 
     case "rawOut":  // This outputs the plaintext of a tree.
-        if len(subTree.args) < 1 {
-            return raiseError("The 'rawOut' function requires at least one argument.")
+        if len(subTree.args) != 1 {
+            return raiseError("The 'rawOut' function requires exactly one argument.")
         }
 
         fmt.Println(evaluator(subTree.args[0]))
