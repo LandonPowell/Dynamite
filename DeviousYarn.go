@@ -85,7 +85,7 @@ func parseNext() tree {
                     args: []tree{ currentTree },
                 }
 
-                if tokenList[0] == "{" { // If it's a multi-line function definition.
+                if contains(tokenList[0], "{[(") { // If it's a multi-line function definition.
                     tokenList = tokenList[1:]   // Remove it.
                     currentTree.args = append(
                         currentTree.args,
