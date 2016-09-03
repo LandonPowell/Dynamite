@@ -43,7 +43,7 @@ func lexer(plaintext string) []string {
     tokens := tokenRegex.FindAllString(plaintext, -1)
 
     for i, x := range tokens {
-        if len(x) >= 2 && x[:2] == ";;" {
+        if len(x) >= 2 && ( x[:2] == ";;" || x[:1] == "#" ) {
             tokens = append(tokens[:i], tokens[i+1:]...)
         }
     }
@@ -524,12 +524,12 @@ func evaluator(subTree tree) tree {
         } else if printArg.Type == "website" {
             if len(subTree.args) == 2 {
                 switch atomizer(evaluator(subTree.args[1])).str {
-                case "domain"   : fmt.Println(atomizer(
-                                    printArg.website[0] ).str)
-                case "header"   : fmt.Println(atomizer(
-                                    printArg.website[1] ).str)
-                case "content"  : fmt.Println(atomizer(
-                                    printArg.website[2] ).str)
+                case "domain":
+                    fmt.Println(atomizer( printArg.website[0] ).str)
+                case "header":
+                    fmt.Println(atomizer( printArg.website[1] ).str)
+                case "content":
+                    fmt.Println(atomizer( printArg.website[2] ).str)
                 }
             } else {
                 fmt.Println("domain:  " + atomizer(printArg.website[0]).str)
