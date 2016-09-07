@@ -33,11 +33,11 @@ func lexer(plaintext string) []string {
     // Returns a list of tokens.
     strings     := "'(\\\\\\\\|\\\\'|[^'])*'|\"[^\n]*"  // Regex for strings. http://www.xkcd.com/1638/
     comments    := "(#|;;)[^\n]*"                       // Regex for comments.
-    brackets    := "[\\[\\](){}:=]"                     // Regex for bracket chars.
-    names       := "[^\\s\\[\\](){}:;#='\"]+"           // Regex for var names.
+    key         := "[\\[\\](){}:=,]"                    // Regex for key chars.
+    names       := "[^\\s\\[\\](){}:;#=',\"]+"          // Regex for var names.
 
     tokenRegex  := regexp.MustCompile(
-        strings+"|"+comments+"|"+brackets+"|"+names,
+        strings+"|"+comments+"|"+key+"|"+names,
     )
 
     tokens := tokenRegex.FindAllString(plaintext, -1)
@@ -70,6 +70,10 @@ func parseNext() tree {
         args: []tree{},
     }
     tokenList = tokenList[1:]   // Removes the first element in the slice.
+
+    if currentTree.value == "," {
+        currentTree = infixParser()
+    }
 
     if len(tokenList) > 0 { // Everybody taking the chance... Safety dance.
 
@@ -113,6 +117,40 @@ func parseNext() tree {
         }
     }
 
+    return currentTree
+}
+
+func infixParser() tree{
+    // This is the parser for when infix gets switched on. Arg Func Arg Func Arg, etc.
+    var currentTree     = parseNext()
+    var infixFunction   = tree{}
+
+    for len(tokenList) > 0 { // So long as we still have tokens, and we haven't turned off the infix parser.
+        if tokenList[0] == "," {
+            tokenList = tokenList[1:]
+            return currentTree
+        }
+
+        infixFunction = parseNext()
+
+        if len(tokenList) == 0 || tokenList[0] == "," {
+            if len(tokenList) > 0 {
+                tokenList = tokenList[1:]
+            }
+            raiseError("Insufficient calls in the infix function syntax.")
+            return currentTree
+        }
+
+        if currentTree.value != infixFunction.value {
+            infixFunction.args = append(infixFunction.args,
+                currentTree,
+                parseNext(),
+            )
+            currentTree = infixFunction
+        } else {
+            currentTree.args = append(currentTree.args, parseNext())
+        }
+    }
     return currentTree
 }
 
