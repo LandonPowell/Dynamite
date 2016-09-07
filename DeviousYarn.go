@@ -476,7 +476,8 @@ func evaluator(subTree tree) tree {
 
         if typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
             lastCondition = true
-            return evalAll(subTree.args[1:])
+            evalAll(subTree.args[1:])
+            return tree { value: "on" }
         }
 
         lastCondition = false;
@@ -524,6 +525,15 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
+
+    case "cond", "condition": // LISP-esque 'cond' function.
+        for _, x := range subTree.args {
+            x = evaluator(x)
+            if x.value == "on" {
+                return x
+            }
+        }
+        return raiseError("Condition or 'cond' function called with no truthful conditions.")
 
     case "&&", "also":  // Also conditional.
         if len(subTree.args) < 1 {
