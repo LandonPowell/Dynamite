@@ -896,14 +896,14 @@ func evaluator(subTree tree) tree {
         }
 
     // Mathmatical operators, such as adding numbers, checking for divisibility, etc.
-    case "sum": // Sum all numerical args together.
+    case "sum", "plus": // Sum all numerical args together.
         number := 0.0
         for _, x := range subTree.args {
             number += atomizer(evaluator(x)).num
         }
         return tree { value: strconv.FormatFloat(number, 'f', -1, 64) }
 
-    case "subtract":    // Starting with the leftmost number, subtract all numbers after it.
+    case "subtract", "minus":    // Starting with the leftmost number, subtract all numbers after it.
         if len(subTree.args) >= 2 {
             number := atomizer(evaluator(subTree.args[0])).num
             for _, x := range subTree.args[1:] {
@@ -913,7 +913,7 @@ func evaluator(subTree tree) tree {
         }
         return raiseError("The 'subtract' function takes two or more num args.")
 
-    case "multiply":    // Multiply all numerical args together.
+    case "multiply", "times":    // Multiply all numerical args together.
         number := 1.0
         for _, x := range subTree.args {
             number *= atomizer(evaluator(x)).num
@@ -964,7 +964,7 @@ func evaluator(subTree tree) tree {
         return raiseError("The 'divisible' function takes exactly two arguments.")
 
     // String manipulation functions.
-    case "concat":  // Concatonate strings.
+    case "concat", "&":  // Concatonate strings.
         newString := "\""
 
         for _, x := range subTree.args {
@@ -978,7 +978,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: newString, args: []tree{} }
 
-    case "replace": // Replace things in a string with a key-value pair, or mutiple key-value pairs.
+    case "replace", "$": // Replace things in a string with a key-value pair, or mutiple key-value pairs.
         if len(subTree.args) % 2 != 1 {
             return raiseError("The 'replace' function requires an odd number of args.")
         }
