@@ -469,6 +469,15 @@ func evaluator(subTree tree) tree {
         return evalAll(subTree.args)
 
     // The following few values are in charge of conditionals.
+    case "cond", "condition": // LISP-esque 'cond' function.
+        for _, x := range subTree.args {
+            x = evaluator(x)
+            if x.value == "on" {
+                return tree { value: "on" }
+            }
+        }
+        return raiseError("Condition or 'cond' function called with no truthful conditions.")
+
     case "?", "if": // Simple conditional. "If"
         if len(subTree.args) < 2 {
             return raiseError("The 'if' conditional function requires at least two arguments.")
@@ -525,15 +534,6 @@ func evaluator(subTree tree) tree {
         }
 
         return tree { value: "off" }
-
-    case "cond", "condition": // LISP-esque 'cond' function.
-        for _, x := range subTree.args {
-            x = evaluator(x)
-            if x.value == "on" {
-                return x
-            }
-        }
-        return raiseError("Condition or 'cond' function called with no truthful conditions.")
 
     case "&&", "also":  // Also conditional.
         if len(subTree.args) < 1 {
@@ -796,22 +796,15 @@ func evaluator(subTree tree) tree {
         }
         return tree { value: "off" }
 
-    case "any": // Return the first thing that isn't blank or 0.
+    case "any": // Return the first thing that isn't equal to a boolean 'off'.
         for _, x := range subTree.args {
             x = evaluator(x)
-            currentItem := atomizer(x)
-            if currentItem.Type == "str" {
-                if strings.TrimSpace(currentItem.str) != "" {
-                    return x
-                }
-            } else if currentItem.Type == "num" {
-                if currentItem.num != 0 {
-                    return x
-                }
-            } else {
-                raiseError("Can't use a " + currentItem.Type + " with the 'any' function.")
+            currentItem := typeConverter(x, "bit")
+            if currentItem.value == "on" {
+                return x
             }
         }
+        return tree { value: "off" }
 
     // Loops.
     case "each", "e":   // For-each loop.
@@ -897,13 +890,29 @@ func evaluator(subTree tree) tree {
             "Index out of range. \n" + 
             strconv.Itoa(index) + " of " + subTree.args[0].value)
 
-    case "length":  // Length of a list.
+    case "length":  // Length of a list, string, or file.
         if len(subTree.args) != 1 {
             return raiseError("The 'length' function requires one argument.")
         }
-        return tree {
-            value: strconv.Itoa(len(evaluator(subTree.args[0]).args)),
+
+        lengthyItem := atomizer(evaluator(subTree.args[0])) // very lewd
+
+        switch lengthyItem.Type {
+        case "str":
+            return tree {
+                value: strconv.Itoa(len(lengthyItem.str)),
+            }
+        case "list":
+            return tree {
+                value: strconv.Itoa(len(lengthyItem.list)),
+            }
+        case "file":
+            return tree {
+                value: strconv.Itoa(len(lengthyItem.file) - 1),
+            }
         }
+
+        return raiseError("The 'length' function takes a string or a list.")
 
     // Mathmatical operators, such as adding numbers, checking for divisibility, etc.
     case "sum", "plus": // Sum all numerical args together.
@@ -1018,8 +1027,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "\"" + originalString.str }
 
-
-    case "split": // To-Do
+    case "split", "/": // To-Do
         if len(subTree.args) != 2 {
             return raiseError("The 'split' function requires two args.")
         }
@@ -1035,15 +1043,22 @@ func evaluator(subTree tree) tree {
             args: []tree{},
         }
 
-        for _, x := range subTree.args[1:] {
-            currentSplit := atomizer(evaluator(x))
 
-            if currentSplit.Type != "str" {
-                return raiseError("The 'split' function only takes strings.")
+        for i, _ := range preString.str {
+            for _, currentSplit := range subTree.args {
+                delimeter := atomizer(evaluator(currentSplit))
+    
+                if delimeter.Type != "str" {
+                    return raiseError("The 'split' function only takes strings.")
+                }
+
+                if delimeter.str == preString.str[i:i+len(delimeter.str)-1] {
+                    fmt.Println("test")
+                }
             }
-
             newList.args = append(newList.args, )
         }
+    
 
         return newList
 
