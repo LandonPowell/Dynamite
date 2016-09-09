@@ -1069,7 +1069,7 @@ func evaluator(subTree tree) tree {
     case "lowercase":
     */
 
-    case "samefold":
+    case "samefold", "caseInsensitiveCheck":
         if len(subTree.args) < 2 {
             return raiseError("The 'samefold' function requires at least two arguments.")
         }
