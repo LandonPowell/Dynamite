@@ -1,4 +1,4 @@
-?{ divisible(8 3)       ;; This is the if conditional. 
+if { divisible(8 3)       ;; This is the if conditional. 
     out:concat {
         " This is an example of DeviousYarn's conditionals system.
         " In DeviousYarn, there are only functions,
@@ -11,30 +11,30 @@ out:concat {
     " you can just toss in statements between functions.
 }
 
--?{ divisible(9 3)      ;; The else if.
+elf { divisible(9 3)      ;; The else if.
     out:concat {
         " So this elf statement still counts,
         " even though there was a function call in between.
     }
 }
--?{ divisible(9 3)
+elf { divisible(9 3)
     out:" However, this statement follows a true elf, so it gets nothing.
 }
 
-?{ divisible(10 5)
+if { divisible(10 5)
     out:" Now get ready, because this is the cool part.
 }
-&?{ divisible(11 1)     ;; The also if.
+alf { divisible(11 1)     ;; The also if.
     out:" The magic of also if conditionals!
 }
 
-?{ on
+if { on
     out:" Now check out what the also conditional does.
 }
 
 out:" This runs no matter what.
 
-&&{                     ;; The also.
+also {                     ;; The also.
     out:concat {
         " We don't have to check the conditional from earlier,
         " because we're using the magic of the "also". 
