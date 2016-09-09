@@ -1062,6 +1062,38 @@ func evaluator(subTree tree) tree {
 
         return newList
 
+    // Also string manipulations, however, they're case conversions. 
+    /*
+    case "foldcase":
+    case "uppercase":
+    case "lowercase":
+    */
+
+    case "samefold":
+        if len(subTree.args) < 2 {
+            return raiseError("The 'samefold' function requires at least two arguments.")
+        }
+
+        firstString := atomizer(evaluator(subTree.args[0]))
+
+        if firstString.Type != "str" {
+            return raiseError("Can't use a '" + firstString.Type + "' with the 'samefold' function.")
+        }
+
+        for _, x := range subTree.args[1:] {
+            nextString := atomizer(evaluator(x))
+
+            if nextString.Type != "str" {
+                raiseError("An argument to samefold was ignored because it wasn't a 'str'.")
+            } else {
+                if ! strings.EqualFold(nextString.str, firstString.str) {
+                    return tree { value: "off" }
+                }
+            }
+        }
+
+        return tree { value: "on" }
+
     // Tree manipulation functions and tree management. 
     case "tree": // Evaluate the tree and return a 'lazyTree'.
         return tree { 
