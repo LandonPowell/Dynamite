@@ -1027,7 +1027,7 @@ func evaluator(subTree tree) tree {
 
         return tree { value: "\"" + originalString.str }
 
-    case "split", "/": // To-Do
+    case "split", "/": // To-do
         if len(subTree.args) != 2 {
             return raiseError("The 'split' function requires two args.")
         }
@@ -1063,13 +1063,37 @@ func evaluator(subTree tree) tree {
         return newList
 
     // Also string manipulations, however, they're case conversions. 
-    case "foldcase":
+    case "foldcase": // To-do
         
-    /*
-    case "uppercase":
-    case "lowercase":
-    case "jadenSmith":
-    */
+
+    case "uppercase", "lowercase", "jadenSmith": // Simple case conversions.
+        if len(subTree.args) != 1 {
+            return raiseError("The '" + subTree.value + "' function takes exactly one argument.")
+        }
+
+        firstString := atomizer(evaluator(subTree.args[0]))
+
+        if firstString.Type != "str" {
+            return raiseError("The '" + subTree.value + "' function only takes 'str' types.")
+        }
+
+        switch subTree.value {
+        case "uppercase":
+            return tree { 
+                value: "\"" + strings.ToUpper(firstString.str),
+                args: []tree{},
+            }
+        case "lowercase":
+            return tree { 
+                value: "\"" + strings.ToLower(firstString.str),
+                args: []tree{},
+            }
+        case "jadenSmith": // This doesn't deserve to be a thing. It's such a stupid fucking 'feature', jesus.
+            return tree { 
+                value: "\"" + strings.Title(firstString.str),
+                args: []tree{},
+            }
+        }
 
     case "samefold", "caselessComparison":
         if len(subTree.args) < 2 {
