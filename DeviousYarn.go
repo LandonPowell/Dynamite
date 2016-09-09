@@ -1063,13 +1063,15 @@ func evaluator(subTree tree) tree {
         return newList
 
     // Also string manipulations, however, they're case conversions. 
-    /*
     case "foldcase":
+        
+    /*
     case "uppercase":
     case "lowercase":
+    case "jadenSmith":
     */
 
-    case "samefold", "caseInsensitiveCheck":
+    case "samefold", "caselessComparison":
         if len(subTree.args) < 2 {
             return raiseError("The 'samefold' function requires at least two arguments.")
         }
