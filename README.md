@@ -12,7 +12,7 @@ language interpreter.
 ### Pros - 
 * It's easy to write.
 * It's easy to read.
-* 'Intelligent Interpreting' throws an error for bad code, but then adapts and fixes your error during runtime.
+* "Intelligent Interpreting" throws an error for bad code, but then adapts and fixes your error during runtime.
 * LISP-like syntax.
 * Function notation.
 * Ability to use all functions as LTR infix operators using "Fang Notation".
