@@ -3,8 +3,6 @@
 
 ### DeviousYarn - The String Manipulation Oriented Language.
 
-### Developer Bitcoin - `1Bmo74LBR6PFBtdsMnFms1rLqYFVDXCyvG`
-
 ## What is DeviousYarn?
 DeviousYarn is a computer language developed by Landon Powell for the purpose of 
 String Manipulation. The DeviousYarn interpreter lies somewhere on the line 
@@ -30,3 +28,5 @@ That's it!
 
 ## How do I learn to use DeviousYarn?
 Check out the documentation at https://github.com/LandonPowell/DeviousYarn/wiki
+
+### Developer Bitcoin - `1Bmo74LBR6PFBtdsMnFms1rLqYFVDXCyvG`
