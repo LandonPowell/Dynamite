@@ -15,7 +15,7 @@ language interpreter.
 * 'Intelligent Interpreting' throws an error for bad code, but then adapts and fixes your error during runtime.
 * LISP-like syntax.
 * Function notation.
-* Ability to use all functions as LTR infix operators.
+* Ability to use all functions as LTR infix operators using "Fang Notation".
 
 ### Cons - 
 * Lower level concepts, like byte manipulations and custom normalization, aren't friendly. 
