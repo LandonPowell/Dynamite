@@ -4,9 +4,22 @@
 ### DeviousYarn - The String Manipulation Oriented Language.
 
 ## What is DeviousYarn?
-DeviousYarn is a computer language developed by Landon Powell for the purpose of 
-String Manipulation. The DeviousYarn interpreter lies somewhere on the line 
-between line editor and programming language interpreter.
+DeviousYarn is a highly abstracted 6GL computer language developed for the sole 
+purpose of making String Manipulation as easy as possible. The DeviousYarn 
+interpreter lies somewhere on the line between line editor and programming 
+language interpreter. 
+
+### Pros - 
+* It's easy to write.
+* It's easy to read.
+* 'Intelligent Interpreting' throws an error for bad code, but then adapts and fixes your error during runtime.
+* LISP-like syntax.
+* Function notation.
+* Ability to use all functions as LTR infix operators.
+
+### Cons - 
+* Lower level concepts, like byte manipulations and custom normalization, aren't friendly. 
+* It's not as fast as other interpreted languages.
 
 ## How do I install it?
 Check your package manager's repos for the official DeviousYarn binary. 
