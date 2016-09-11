@@ -484,8 +484,9 @@ func evaluator(subTree tree) tree {
         }
 
         if typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
-            lastCondition = true
+
             evalAll(subTree.args[1:])
+            lastCondition = true
             return tree { value: "on" }
         }
 
@@ -500,9 +501,9 @@ func evaluator(subTree tree) tree {
         if !lastCondition && 
             typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
 
+            evalAll(subTree.args[1:])
             lastCondition = true
-            return evalAll(subTree.args[1:])
-
+            return tree { value: "on"} 
         }
 
         lastCondition = false
@@ -516,9 +517,9 @@ func evaluator(subTree tree) tree {
         if lastCondition && 
             typeConverter(evaluator(subTree.args[0]), "bit").value == "on" {
 
+            evalAll(subTree.args[1:])
             lastCondition = true
-            return evalAll(subTree.args[1:])
-
+            return tree { value: "on"} 
         }
 
         lastCondition = false
@@ -652,11 +653,15 @@ func evaluator(subTree tree) tree {
             return raiseError("The file saving function requires a 'file' type argument.")  // raise an error.
         }
 
+        if len(fileArg.args) == 0 {
+            return raiseError("The file argument for 'saveFile' must include a filename.")
+        }
+
         fileName := atomizer( evaluator(fileArg.args[0]) ).str // Evaluate the first argument of the 'file' arg, aka the name of the file.
 
         fileContent := []string{} // Define an empty array of strings. 
 
-        for _, x := range subTree.args[0].args[1:] { // Loop through all the lines in the file,
+        for _, x := range fileArg.args[1:] { // Loop through all the lines in the file,
             fileContent = append(fileContent, atomizer(evaluator(x)).str) // and append them to the file content after evaluating them to strings.
         }
 
@@ -721,26 +726,26 @@ func evaluator(subTree tree) tree {
     case "equals", "is":    // Check for equality.
         if len(subTree.args) > 0 {
             firstTree := evaluator(subTree.args[0])
+            firstAtom := atomizer(firstTree)
+
             for _, x := range subTree.args[1:] {
                 x = evaluator(x)
-    
-                if len(x.args) != len(firstTree.args) ||
-                    atomizer(firstTree).str != atomizer(x).str ||
-                    atomizer(firstTree).num != atomizer(x).num {
-    
+                nextAtom := atomizer(x)
+
+                if nextAtom.Type != firstAtom.Type {
+                    raiseError("You've attempted to compare a '" + firstAtom.Type +
+                               "' and a '" + nextAtom.Type + "'.")
+                }
+
+                if typeConverter(x, firstAtom.Type).value != firstTree.value {
                     return tree { value: "off" }
-    
                 }
-    
-                for i, y := range x.args {
-                    if y.value != firstTree.args[i].value {
-                        return tree { value: "off" }
-                    }
-                }
+
             }
             return tree { value: "on" }
         }
-        return tree { value: "off" }
+
+        return raiseError("You can't check for equality without any arguments.")
 
     case "isMax", ">":  // Greater than / Check if the largest element in the list.
         if len(subTree.args) > 0 {
@@ -854,19 +859,26 @@ func evaluator(subTree tree) tree {
 
         return generatedList
 
-    case "append", "a": // Append to a list.
+    case "append", "a": // Append to a list (or file).
         if len(subTree.args) < 1 {
             return raiseError( "The 'append' function requires at least one argument.")
         }
 
-        list := evaluator(subTree.args[0]).args
+        original    := evaluator(subTree.args[0])
+        list        := original.args
+
+        varType := atomizer(original).Type
+
+        if varType != "list" && varType != "file" {
+            return raiseError("The 'append' function takes only lists and files.")
+        }
 
         for _, x := range subTree.args[1:] {
             list = append(list, evaluator(x))
         }
 
         return tree {
-            value: "list", 
+            value: original.value, 
             args: list,
         }
 
