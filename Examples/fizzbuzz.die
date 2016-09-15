@@ -3,7 +3,7 @@ each { x range
         p:'Fizz' }
     if  { divisible(x 5)
         p:'Buzz' }
-    elf { !:divisible(x 3)
+    elf { not:divisible(x 3)
         p:x }
     out
 }
