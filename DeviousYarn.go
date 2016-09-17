@@ -432,7 +432,23 @@ func evaluator(subTree tree) tree {
     } 
 
     if atomizer(subTree).Type != "CAN NOT PARSE" {  
-        // Raw Data Types, such as 'str', 'num', etc. 
+        // Raw Data Types, such as 'str', 'num', etc.
+
+        if len(subTree.args) != 0 { // If someone is calling a variable with an argument.
+            atomized := atomizer(subTree)
+            index := atomizer(evaluator(subTree.args[0]))
+            switch atomized.Type {
+            case "str":
+                if index.Type == "num" && int(index.num) < len(atomized.str) {
+                    return tree {
+                        value: "\"" + string(atomized.str[int(index.num)]),
+                        args: []tree{},
+                    }
+                }
+                return raiseError("You've used an invalid index on a string.")
+            }
+        }
+
         return subTree
     }
 
@@ -890,6 +906,10 @@ func evaluator(subTree tree) tree {
         list    := evaluator(subTree.args[0])
         index   := int(atomizer(evaluator(subTree.args[1])).num)
 
+        if atomizer(list).Type != "list" {
+            return raiseError("You cannot index a non list.")
+        }
+
         if index < len(list.args) && index >= 0 {
             return list.args[index]
         }
@@ -999,12 +1019,15 @@ func evaluator(subTree tree) tree {
         newString := "\""
 
         for _, x := range subTree.args {
-            subString := atomizer(evaluator(x))
-            newString += subString.str
+            subString   := evaluator(x)
+            subAtom     := atomizer(subString)
 
-            if subString.Type != "str" {
-                raiseError("You used " + x.value + ", a '" + subString.Type + "' as a str.")
+            if subAtom.Type != "str" {
+                raiseError("You used " + x.value + ", a '" + subAtom.Type + "' as a str.")
             }
+
+            subString = typeConverter(subString, "str")
+            newString += atomizer(subString).str
         }
 
         return tree { value: newString, args: []tree{} }
