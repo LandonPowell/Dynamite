@@ -43,3 +43,4 @@ That's it!
 Check out the documentation at https://github.com/LandonPowell/DeviousYarn/wiki
 
 ### Developer Bitcoin - `1Bmo74LBR6PFBtdsMnFms1rLqYFVDXCyvG`
+### Developer paypal (DONATE HERE (LEGIT) ) - get52get52@gmail.com
