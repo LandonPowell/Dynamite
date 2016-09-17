@@ -436,17 +436,17 @@ func evaluator(subTree tree) tree {
 
         if len(subTree.args) != 0 { // If someone is calling a variable with an argument.
             atomized := atomizer(subTree)
-            index := atomizer(evaluator(subTree.args[0]))
+            index   := atomizer(evaluator(subTree.args[0]))
             switch atomized.Type {
-            case "str":
+            case "str": // Torvalds is about to get really mad at all these indents, kek.
                 if index.Type == "num" && int(index.num) < len(atomized.str) {
                     return tree {
                         value: "\"" + string(atomized.str[int(index.num)]),
                         args: []tree{},
                     }
                 }
-                return raiseError("You've used an invalid index on a string.")
             }
+            return raiseError("You've used an invalid index on a " + atomized.Type + " datatype.")
         }
 
         return subTree
@@ -751,6 +751,10 @@ func evaluator(subTree tree) tree {
                 if nextAtom.Type != firstAtom.Type {
                     raiseError("You've attempted to compare a '" + firstAtom.Type +
                                "' and a '" + nextAtom.Type + "'.")
+                }
+
+                if firstAtom.Type == "str" && nextAtom.str == firstAtom.str {
+                    return tree { value: "on" }
                 }
 
                 if typeConverter(x, firstAtom.Type).value != firstTree.value {
