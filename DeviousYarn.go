@@ -401,6 +401,7 @@ func evaluator(subTree tree) tree {
 
     if variable, ok := variables[subTree.value]; ok { // Variable definition check.
         // This returns variable values.
+        variable.args = subTree.args
         return evaluator(variable)
     } 
 
@@ -434,6 +435,7 @@ func evaluator(subTree tree) tree {
     if atomizer(subTree).Type != "CAN NOT PARSE" {  
         // Raw Data Types, such as 'str', 'num', etc.
 
+        // This is temporary code. Not permanent.
         if len(subTree.args) != 0 { // If someone is calling a variable with an argument.
             atomized := atomizer(subTree)
             index   := atomizer(evaluator(subTree.args[0]))
@@ -844,6 +846,10 @@ func evaluator(subTree tree) tree {
         return tree { value: "on" }
 
     case "while", "w":  // While-true loop.
+        if len(subTree.args) < 2 {
+            return raiseError("You have to have at least two arguments to form a 'while' loop.")
+        }
+
         for evaluator(subTree.args[0]).value == "on" {
             evalAll(subTree.args[1:])
         }
