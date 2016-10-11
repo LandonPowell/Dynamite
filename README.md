@@ -10,6 +10,8 @@ interpreter lies somewhere on the line between line editor and programming
 language interpreter. 
 
 ### Pros - 
+* Entirely Homoiconic.
+* Removes common homoiconic issues through syntax sugar. 
 * It's easy to write.
 * It's easy to read.
 * "Intelligent Interpreting" throws an error for bad code, but then adapts and fixes your error during runtime.
