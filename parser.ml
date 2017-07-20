@@ -191,9 +191,12 @@ and infixParser tree leftover =
     if (List.length leftover < 2) then
         (tree, leftover)
 
-    else if List.hd leftover = Name "index" then
+    else if Hashtbl.mem infixKeywords (List.hd leftover) then
+        let operator = List.hd leftover in
         let newTree, leftover = parser (List.tl leftover) in
-        (Call ("index", tree::[newTree]), leftover)
+        (Call (
+            (Hashtbl.find infixKeywords operator)
+        , tree::[newTree]), leftover)
 
     else
         (tree, leftover)

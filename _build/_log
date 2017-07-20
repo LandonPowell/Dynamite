@@ -1,8 +1,8 @@
 ### Starting build.
 # Target: interface.ml.depends, tags: { extension:ml, file:interface.ml, ocaml, ocamldep, package(unix), quiet, traverse }
-ocamlfind ocamldep -package unix -modules interface.ml > interface.ml.depends
+ocamlfind ocamldep -package unix -modules interface.ml > interface.ml.depends # cached
 # Target: codegen.ml.depends, tags: { extension:ml, file:codegen.ml, ocaml, ocamldep, package(unix), quiet, traverse }
-ocamlfind ocamldep -package unix -modules codegen.ml > codegen.ml.depends
+ocamlfind ocamldep -package unix -modules codegen.ml > codegen.ml.depends # cached
 # Target: parser.ml.depends, tags: { extension:ml, file:parser.ml, ocaml, ocamldep, package(unix), quiet, traverse }
 ocamlfind ocamldep -package unix -modules parser.ml > parser.ml.depends
 # Target: parser.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:parser.cmo, file:parser.ml, implem, ocaml, package(unix), quiet, traverse }
