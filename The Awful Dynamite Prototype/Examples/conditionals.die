@@ -1,0 +1,54 @@
+condition { ;; This functions like LISP's 'cond' keyword. 
+    if { , 3 times 3 is 8 , ;; This is a set of infix fangs, and the infix operators being used by them.
+        out: " No it isn't.
+    }
+    if { , 3 times 3 is 9 ,
+        out: " Of course it is.
+    }
+    if { , 3 times 2 is 6 ,
+        out: " This never gets checked anyways, so it doesn't matter if it is or not.
+    }
+}
+
+if { divisible(8 3)       ;; This is the if conditional. 
+    out:concat {
+        " This is an example of DeviousYarn's conditionals system.
+        " In DeviousYarn, there are only functions,
+        " so naturally, condtionals are also functions.
+    }
+}
+
+out:concat {
+    " A part of this function-centric system means
+    " you can just toss in statements between functions.
+}
+
+elf { divisible(9 3)      ;; The else if.
+    out:concat {
+        " So this elf statement still counts,
+        " even though there was a function call in between.
+    }
+}
+elf { divisible(9 3)
+    out:" However, this statement follows a true elf, so it gets nothing.
+}
+
+if { divisible(10 5)
+    out:" Now get ready, because this is the cool part.
+}
+alf { divisible(11 1)     ;; The also if.
+    out:" The magic of also if conditionals!
+}
+
+if { on
+    out:" Now check out what the also conditional does.
+}
+
+out:" This runs no matter what.
+
+also {                     ;; The also.
+    out:concat {
+        " We don't have to check the conditional from earlier,
+        " because we're using the magic of the "also". 
+    } 
+}
