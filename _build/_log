@@ -1,0 +1,22 @@
+### Starting build.
+# Target: interface.ml.depends, tags: { extension:ml, file:interface.ml, ocaml, ocamldep, package(unix), quiet, traverse }
+ocamlfind ocamldep -package unix -modules interface.ml > interface.ml.depends # cached
+# Target: codegen.ml.depends, tags: { extension:ml, file:codegen.ml, ocaml, ocamldep, package(unix), quiet, traverse }
+ocamlfind ocamldep -package unix -modules codegen.ml > codegen.ml.depends
+# Target: parser.ml.depends, tags: { extension:ml, file:parser.ml, ocaml, ocamldep, package(unix), quiet, traverse }
+ocamlfind ocamldep -package unix -modules parser.ml > parser.ml.depends # cached
+# Target: parser.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:parser.cmo, file:parser.ml, implem, ocaml, package(unix), quiet, traverse }
+ocamlfind ocamlc -c -package unix -o parser.cmo parser.ml # cached
+# Target: codegen.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:codegen.cmo, file:codegen.ml, implem, ocaml, package(unix), quiet, traverse }
+ocamlfind ocamlc -c -package unix -o codegen.cmo codegen.ml
+# Target: interface.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:interface.cmo, file:interface.ml, implem, ocaml, package(unix), quiet, traverse }
+ocamlfind ocamlc -c -package unix -o interface.cmo interface.ml # cached
+# Target: parser.cmx, tags: { compile, extension:cmx, extension:ml, file:parser.cmx, file:parser.ml, implem, native, ocaml, package(unix), quiet, traverse }
+ocamlfind ocamlopt -c -package unix -o parser.cmx parser.ml # cached
+# Target: codegen.cmx, tags: { compile, extension:cmx, extension:ml, file:codegen.cmx, file:codegen.ml, implem, native, ocaml, package(unix), quiet, traverse }
+ocamlfind ocamlopt -c -package unix -o codegen.cmx codegen.ml
+# Target: interface.cmx, tags: { compile, extension:cmx, extension:ml, file:interface.cmx, file:interface.ml, implem, native, ocaml, package(unix), quiet, traverse }
+ocamlfind ocamlopt -c -package unix -o interface.cmx interface.ml # cached
+# Target: interface.native, tags: { dont_link_with, extension:native, file:interface.native, link, native, ocaml, package(unix), program, quiet, traverse }
+ocamlfind ocamlopt -linkpkg -package unix parser.cmx codegen.cmx interface.cmx -o interface.native
+# Compilation successful.
