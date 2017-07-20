@@ -134,6 +134,12 @@ type tree =
     | String    of string
 ;;
 
+let infixKeywords =
+    let table = Hashtbl.create 15 in
+    Hashtbl.add table (Name "index") ("index");
+    table
+;;
+
 let rec parserLoop tokens =
     if tokens = [] || List.hd tokens = Bracket false then
         if tokens = [] then ([], []) (* SAFETY DANCE *)
@@ -160,7 +166,17 @@ and parser tokens = match tokens with
         let trees, leftover = parserLoop leftover in
         infixParser (List trees) leftover
 
-    | Name value::leftover -> ( Call (value, []), leftover)
+    | Name value::Name infix::leftover -> (
+        if Hashtbl.mem infixKeywords (Name infix) then
+            let newTree, leftover = parser leftover in
+            ( Call (Hashtbl.find infixKeywords (Name infix),
+                (Call (value, [])) :: [newTree]
+            ),
+            leftover)
+        else ( Call (value, []), Name value::leftover )
+    )
+
+    | Name value::leftover -> ( Call (value, []), leftover )
     | Number value::leftover -> ( Number value, leftover )
     | String value::leftover -> ( String value, leftover )
 
@@ -174,9 +190,11 @@ and parser tokens = match tokens with
 and infixParser tree leftover =
     if (List.length leftover < 2) then
         (tree, leftover)
+
     else if List.hd leftover = Name "index" then
         let newTree, leftover = parser (List.tl leftover) in
         (Call ("index", tree::[newTree]), leftover)
+
     else
         (tree, leftover)
 

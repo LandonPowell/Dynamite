@@ -22,7 +22,8 @@ let () =
     Printf.fprintf file "%s" ocamlCode;
     close_out file;
     Unix.chdir "./ocamlCode";
-    (* To-do : Move the standard library into the ocamlCode folder. *)
+
+    ignore( Unix.system "cp /usr/lib/dy/standardlibrary.ml ./" );
     ignore( Unix.system ("ocamlbuild -use-ocamlfind " ^ sourceFile ^ ".native ") );
     ignore( Unix.system ("mv " ^ sourceFile ^ ".native ../" ^ nativeFile) );
 ;;
