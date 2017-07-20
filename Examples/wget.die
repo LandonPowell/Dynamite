@@ -1,7 +1,0 @@
-p:"Enter a Domain: 
-site = get:in
-
-save:file {
-    replace(i[site 0] '/' '\') ;; Sanitize the file name.
-    i[site 2]
-}
