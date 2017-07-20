@@ -6,10 +6,10 @@ compatible with any and all ocaml code and libraries.
 
 ## Installing Dynamite's compiler on Linux or Cygwin
 
-### Install ocaml, ocamlbuild, and opam.
-### Move the `dynamite` executable into your `/usr/bin` folder.
-### Run `mkdir /usr/lib/dy` with sudo.
-### Move the `usr/lib/dy/standardlibrary.ml` into `/usr/lib/dy/standardlibrary.ml` with sudo.
+* Install ocaml, ocamlbuild, and opam.
+* Move the `dynamite` executable into your `/usr/bin` folder.
+* Run `mkdir /usr/lib/dy` with sudo.
+* Move the `usr/lib/dy/standardlibrary.ml` into `/usr/lib/dy/standardlibrary.ml` with sudo.
 
 ### You now have a working installation of Dynamite.
 
