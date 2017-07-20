@@ -17,3 +17,10 @@ compatible with any and all ocaml code and libraries.
 
 The documentation for Dynamite is available at 
 [https://github.com/LandonPowell/Dynamite/wiki](https://github.com/LandonPowell/Dynamite/wiki)
+
+## Compiling Dynamite from Source
+
+* Install ocaml, ocamlbuild, and opam.
+* Run `ocamlbuild -use-ocamlfind interface.native`.
+* Rename `interface.native` as `dynamite`.
+* Proceed to install Dynamite as normal.
