@@ -3,9 +3,10 @@
 |*)
 
 type token = 
-    | Name      of string   (* Used for function names. *)
+    | Name      of string   (* Used for function || variable names. *)
     | Number    of float    (* Used for all numbers, integer or float. *)
     | String    of string   (* String lits converted here. *)
+    | Boolean   of bool     (* Boolean values. *)
     | Bracket   of bool     (* True if opening, False if closing. *)
     | ListBegin (* Special bracket type for square brackets. *)
     | Special   of char     (* Anything that doesn't fall into one of those goes here. *)
@@ -115,7 +116,11 @@ let tokenize characters =
                     index := !index + 1
                 done;
 
-                tokens := !tokens @ [Name (Buffer.contents buffer)]
+                tokens := !tokens @ [
+                    if (Buffer.contents buffer) = "true" then Boolean true
+                    else if Buffer.contents buffer = "false" then Boolean false
+                    else Name (Buffer.contents buffer)
+                ]
             )
         ; 
     done;
@@ -132,11 +137,14 @@ type tree =
     | List      of tree list
     | Number    of float
     | String    of string
+    | Boolean   of bool
 ;;
 
 let infixKeywords =
     let table = Hashtbl.create 15 in
+    Hashtbl.add table (Name "is") ("is");
     Hashtbl.add table (Name "index") ("index");
+    Hashtbl.add table (Special '=') ("function");
     table
 ;;
 
@@ -173,12 +181,13 @@ and parser tokens = match tokens with
                 (Call (value, [])) :: [newTree]
             ),
             leftover)
-        else ( Call (value, []), Name value::leftover )
+        else ( Call (value, []), Name infix::leftover )
     )
 
     | Name value::leftover -> ( Call (value, []), leftover )
     | Number value::leftover -> ( Number value, leftover )
     | String value::leftover -> ( String value, leftover )
+    | Boolean value::leftover -> ( Boolean value, leftover )
 
     | Bracket false::leftover ->
         ( print_endline "You used an unexpected closing bracket!";
@@ -192,13 +201,12 @@ and infixParser tree leftover =
         (tree, leftover)
 
     else if Hashtbl.mem infixKeywords (List.hd leftover) then
-        let operator = List.hd leftover in
+        let operator = Hashtbl.find infixKeywords (List.hd leftover) in
         let newTree, leftover = parser (List.tl leftover) in
-        (Call (
-            (Hashtbl.find infixKeywords operator)
-        , tree::[newTree]), leftover)
+        (Call (operator, tree::[newTree]), leftover)
 
     else
         (tree, leftover)
 
 ;;
+
